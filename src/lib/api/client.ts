@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   PaginatedResponse,
   AuthTokenPayload,
+  Gender,
   Product,
   Order,
   Province,
@@ -10,6 +11,7 @@ import type {
   SubDistrict,
   OrderNote,
   Quote,
+  TitlePrefix,
 } from "@/types";
 
 const api = axios.create({
@@ -30,7 +32,10 @@ api.interceptors.request.use((config) => {
 
 export const authApi = {
   register: (body: {
-    name: string;
+    title_prefix: TitlePrefix;
+    gender: Gender;
+    first_name: string;
+    last_name: string;
     phone: string;
     password: string;
     email?: string;
@@ -59,6 +64,9 @@ export const productApi = {
 // ── Orders ───────────────────────────────────────────────────────────────────
 
 export const orderApi = {
+  listMine: (params?: { page?: number; size?: number; status?: string }) =>
+    api.get<PaginatedResponse<Order>>("/orders", { params }),
+
   create: (body: {
     order_mode: string;
     product_id?: string;

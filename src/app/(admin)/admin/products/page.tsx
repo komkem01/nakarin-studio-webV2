@@ -121,7 +121,7 @@ export default function AdminProductsPage() {
         <span className="text-sm text-gray-400">ทั้งหมด {total} รายการ</span>
         <button
           onClick={openNew}
-          className="bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-800 transition"
+          className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition"
         >
           + เพิ่มผลงาน
         </button>
@@ -139,7 +139,7 @@ export default function AdminProductsPage() {
               key={product.id}
               className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
             >
-              <div className="relative aspect-video bg-amber-50">
+              <div className="relative aspect-video bg-emerald-50">
                 {product.images?.[0] ? (
                   <Image
                     src={product.images[0].url}
@@ -149,7 +149,7 @@ export default function AdminProductsPage() {
                     sizes="(max-width: 640px) 100vw, 50vw"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-amber-200 text-3xl">
+                  <div className="absolute inset-0 flex items-center justify-center text-emerald-200 text-3xl">
                     🌸
                   </div>
                 )}
@@ -169,7 +169,7 @@ export default function AdminProductsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => openEdit(product)}
-                    className="flex-1 border border-amber-300 text-amber-700 py-1.5 rounded-lg text-xs hover:bg-amber-50 transition"
+                    className="flex-1 border border-emerald-300 text-emerald-800 py-1.5 rounded-lg text-xs hover:bg-emerald-50 transition"
                   >
                     แก้ไข
                   </button>
@@ -221,7 +221,7 @@ export default function AdminProductsPage() {
               <select
                 value={form.event_type}
                 onChange={(e) => set("event_type", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
               >
                 {(Object.entries(EVENT_TYPE_LABELS) as [EventType, string][]).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -241,17 +241,17 @@ export default function AdminProductsPage() {
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
                 rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
               />
             </div>
 
             <div className="flex items-center gap-4 sm:col-span-2">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} className="accent-amber-700" />
+                <input type="checkbox" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} className="accent-emerald-800" />
                 <span className="text-sm text-gray-700">เปิดแสดงผล</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.is_featured} onChange={(e) => set("is_featured", e.target.checked)} className="accent-amber-700" />
+                <input type="checkbox" checked={form.is_featured} onChange={(e) => set("is_featured", e.target.checked)} className="accent-emerald-800" />
                 <span className="text-sm text-gray-700">แนะนำ</span>
               </label>
             </div>
@@ -271,7 +271,7 @@ export default function AdminProductsPage() {
             <button
               onClick={() => saveMutation.mutate()}
               disabled={!form.title || !form.slug || saveMutation.isPending}
-              className="flex-1 bg-amber-700 text-white py-2 rounded-xl text-sm font-medium hover:bg-amber-800 transition disabled:opacity-50"
+              className="flex-1 bg-emerald-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-emerald-900 transition disabled:opacity-50"
             >
               {saveMutation.isPending ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "เพิ่มผลงาน"}
             </button>
@@ -303,7 +303,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
       />
     </div>
   );

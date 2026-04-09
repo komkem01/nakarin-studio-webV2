@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   pending: "bg-yellow-100 text-yellow-700",
   quoted: "bg-blue-100 text-blue-700",
   confirmed: "bg-indigo-100 text-indigo-700",
-  in_progress: "bg-amber-100 text-amber-700",
+  in_progress: "bg-emerald-100 text-emerald-800",
   done: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-500",
 };
@@ -57,7 +57,7 @@ export default function AdminOrdersPage() {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
         >
           <option value="">ทุกสถานะ</option>
           {(Object.entries(STATUS_LABELS) as [OrderStatus, string][]).map(([k, v]) => (
@@ -121,7 +121,7 @@ export default function AdminOrdersPage() {
                       onChange={(e) =>
                         updateStatus.mutate({ id: order.id, status: e.target.value })
                       }
-                      className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
                     >
                       {(Object.entries(STATUS_LABELS) as [OrderStatus, string][]).map(([k, v]) => (
                         <option key={k} value={k}>{v}</option>
@@ -131,7 +131,7 @@ export default function AdminOrdersPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/orders/${order.id}`}
-                      className="text-amber-700 hover:underline text-xs"
+                      className="text-emerald-800 hover:underline text-xs"
                     >
                       ดูรายละเอียด
                     </Link>

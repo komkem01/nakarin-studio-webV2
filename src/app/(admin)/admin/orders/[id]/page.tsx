@@ -79,7 +79,7 @@ export default function AdminOrderDetailPage({
         <p className="text-gray-500 mb-3">ไม่พบคำสั่งซื้อ</p>
         <button
           onClick={() => router.back()}
-          className="text-amber-700 underline text-sm"
+          className="text-emerald-800 underline text-sm"
         >
           กลับ
         </button>
@@ -91,7 +91,7 @@ export default function AdminOrderDetailPage({
     <div className="max-w-3xl">
       <button
         onClick={() => router.back()}
-        className="text-amber-700 text-sm mb-6 hover:underline"
+        className="text-emerald-800 text-sm mb-6 hover:underline"
       >
         ← กลับรายการ
       </button>
@@ -111,7 +111,7 @@ export default function AdminOrderDetailPage({
               setNewStatus(e.target.value as OrderStatus);
               updateStatus.mutate(e.target.value);
             }}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
           >
             {(Object.entries(STATUS_LABELS) as [OrderStatus, string][]).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
@@ -151,8 +151,8 @@ export default function AdminOrderDetailPage({
         {order.quotes && order.quotes.length > 0 && (
           <div className="mb-4 space-y-2">
             {order.quotes.map((q: Quote) => (
-              <div key={q.id} className="flex items-center justify-between bg-amber-50 rounded-lg px-4 py-2 text-sm">
-                <span className="font-medium text-amber-800">
+              <div key={q.id} className="flex items-center justify-between bg-emerald-50 rounded-lg px-4 py-2 text-sm">
+                <span className="font-medium text-emerald-900">
                   {q.amount.toLocaleString("th-TH")} บาท
                 </span>
                 <span
@@ -177,14 +177,14 @@ export default function AdminOrderDetailPage({
             value={quoteAmount}
             onChange={(e) => setQuoteAmount(e.target.value)}
             placeholder="จำนวนเงิน (บาท) *"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
           />
           <input
             type="text"
             value={quoteNote}
             onChange={(e) => setQuoteNote(e.target.value)}
             placeholder="หมายเหตุ (ไม่บังคับ)"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
           />
           <button
             onClick={() =>
@@ -194,7 +194,7 @@ export default function AdminOrderDetailPage({
               })
             }
             disabled={!quoteAmount || createQuote.isPending}
-            className="bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-800 transition disabled:opacity-50"
+            className="bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-900 transition disabled:opacity-50"
           >
             {createQuote.isPending ? "กำลังส่ง..." : "ส่ง"}
           </button>
@@ -210,7 +210,7 @@ export default function AdminOrderDetailPage({
             value={noteContent}
             onChange={(e) => setNoteContent(e.target.value)}
             placeholder="เพิ่มบันทึก..."
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
           />
           <button
             onClick={() => addNote.mutate(noteContent)}

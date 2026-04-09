@@ -33,9 +33,9 @@ export default function AdminLayout({
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
-        <div className="h-16 flex items-center px-5 border-b border-gray-100">
-          <span className="font-bold text-amber-800">นาคารินสตูดิโอ</span>
-          <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+        <div className="h-16 flex items-center px-5 border-b border-yellow-100">
+          <span className="font-bold text-emerald-900">นครินทร์ สตูดิโอ</span>
+          <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
             Admin
           </span>
         </div>
@@ -46,7 +46,7 @@ export default function AdminLayout({
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
                 pathname.startsWith(item.href)
-                  ? "bg-amber-700 text-white font-medium"
+                  ? "bg-emerald-800 text-white font-medium"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >

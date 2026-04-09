@@ -4,9 +4,9 @@ import Link from "next/link";
 import type { Product, EventType, PaginatedResponse } from "@/types";
 
 export const metadata: Metadata = {
-  title: "ผลงานบายศรี — นาคารินสตูดิโอ",
+  title: "ผลงานบายศรี — นครินทร์ สตูดิโอ",
   description:
-    "ชมผลงานบายศรีแต่งงาน บวช ขึ้นบ้านใหม่ รับปริญญา จากนาคารินสตูดิโอ สั่งทำได้เลยวันนี้",
+    "ชมผลงานบายศรีแต่งงาน บวช ขึ้นบ้านใหม่ รับปริญญา จากนครินทร์ สตูดิโอ สั่งทำได้เลยวันนี้",
 };
 
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -54,8 +54,8 @@ export default async function PortfolioPage({
           href="/portfolio"
           className={`px-4 py-1.5 rounded-full text-sm border transition ${
             !params.event_type
-              ? "bg-amber-700 text-white border-amber-700"
-              : "border-amber-300 text-amber-700 hover:bg-amber-50"
+              ? "bg-emerald-800 text-white border-emerald-800"
+              : "border-emerald-300 text-emerald-800 hover:bg-emerald-50"
           }`}
         >
           ทั้งหมด
@@ -67,8 +67,8 @@ export default async function PortfolioPage({
               href={`/portfolio?event_type=${key}`}
               className={`px-4 py-1.5 rounded-full text-sm border transition ${
                 params.event_type === key
-                  ? "bg-amber-700 text-white border-amber-700"
-                  : "border-amber-300 text-amber-700 hover:bg-amber-50"
+                  ? "bg-emerald-800 text-white border-emerald-800"
+                  : "border-emerald-300 text-emerald-800 hover:bg-emerald-50"
               }`}
             >
               {label}
@@ -88,7 +88,7 @@ export default async function PortfolioPage({
               href={`/portfolio/${product.slug}`}
               className="group rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition"
             >
-              <div className="relative aspect-square bg-amber-50">
+              <div className="relative aspect-square bg-emerald-50">
                 {product.images?.[0] ? (
                   <Image
                     src={product.images[0].url}
@@ -98,11 +98,11 @@ export default async function PortfolioPage({
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-amber-200 text-4xl">
+                  <div className="absolute inset-0 flex items-center justify-center text-emerald-200 text-4xl">
                     🌸
                   </div>
                 )}
-                <span className="absolute top-3 left-3 bg-white/80 backdrop-blur-sm text-amber-700 text-xs font-medium px-2 py-1 rounded-full">
+                <span className="absolute top-3 left-3 bg-white/80 backdrop-blur-sm text-emerald-800 text-xs font-medium px-2 py-1 rounded-full">
                   {EVENT_TYPE_LABELS[product.event_type]}
                 </span>
               </div>
@@ -111,7 +111,7 @@ export default async function PortfolioPage({
                   {product.title}
                 </h2>
                 {product.price_start != null && (
-                  <p className="text-amber-700 text-sm mt-1">
+                  <p className="text-emerald-800 text-sm mt-1">
                     เริ่มต้น {product.price_start.toLocaleString("th-TH")} บาท
                   </p>
                 )}

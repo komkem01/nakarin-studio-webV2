@@ -1,7 +1,7 @@
 // ── Enums ───────────────────────────────────────────────────────────────────
 
 export type UserRole = "customer" | "admin";
-export type Gender = "male" | "female" | "other";
+export type Gender = "ชาย" | "หญิง" | "อื่นๆ";
 export type TitlePrefix = "นาย" | "นาง" | "นางสาว" | "ดร." | "รศ." | "ศ." | "อื่นๆ";
 
 export type EventType =
@@ -146,9 +146,14 @@ export interface PaginatedResponse<T> {
   code: string;
   message: string;
   data: T[];
-  total: number;
-  page: number;
-  size: number;
+  total?: number;
+  page?: number;
+  size?: number;
+  paginate?: {
+    page: number;
+    size: number;
+    total: number;
+  };
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────

@@ -36,7 +36,7 @@ export async function generateMetadata({
   const product = await getProduct(slug);
   if (!product) return { title: "ไม่พบผลงาน" };
   return {
-    title: product.seo_title ?? `${product.title} — นาคารินสตูดิโอ`,
+    title: product.seo_title ?? `${product.title} — นครินทร์ สตูดิโอ`,
     description:
       product.seo_description ?? product.description ?? undefined,
     openGraph: product.images?.[0]
@@ -59,14 +59,14 @@ export default async function PortfolioDetailPage({
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-12">
-      <Link href="/portfolio" className="text-amber-700 text-sm mb-6 inline-block hover:underline">
+      <Link href="/portfolio" className="text-emerald-800 text-sm mb-6 inline-block hover:underline">
         ← กลับหน้าผลงาน
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {/* Images */}
         <div className="space-y-3">
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-amber-50">
+          <div className="relative aspect-square rounded-2xl overflow-hidden bg-emerald-50">
             {mainImage ? (
               <Image
                 src={mainImage.url}
@@ -77,7 +77,7 @@ export default async function PortfolioDetailPage({
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-amber-200 text-6xl">
+              <div className="absolute inset-0 flex items-center justify-center text-emerald-200 text-6xl">
                 🌸
               </div>
             )}
@@ -87,7 +87,7 @@ export default async function PortfolioDetailPage({
               {otherImages.slice(0, 5).map((img) => (
                 <div
                   key={img.id}
-                  className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-amber-50"
+                  className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-emerald-50"
                 >
                   <Image
                     src={img.url}
@@ -104,13 +104,13 @@ export default async function PortfolioDetailPage({
 
         {/* Details */}
         <div>
-          <span className="inline-block bg-amber-100 text-amber-700 text-xs font-medium px-3 py-1 rounded-full mb-3">
+          <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-medium px-3 py-1 rounded-full mb-3">
             {EVENT_TYPE_LABELS[product.event_type]}
           </span>
           <h1 className="text-3xl font-bold text-gray-800 mb-3">{product.title}</h1>
 
           {product.price_start != null && (
-            <p className="text-2xl font-semibold text-amber-700 mb-4">
+            <p className="text-2xl font-semibold text-emerald-800 mb-4">
               เริ่มต้น {product.price_start.toLocaleString("th-TH")} บาท
             </p>
           )}
@@ -146,7 +146,7 @@ export default async function PortfolioDetailPage({
 
           <Link
             href={`/order?product_id=${product.id}&mode=custom_from_product`}
-            className="block w-full bg-amber-700 text-white text-center py-3 rounded-xl font-semibold hover:bg-amber-800 transition"
+            className="block w-full bg-emerald-800 text-white text-center py-3 rounded-xl font-semibold hover:bg-emerald-900 transition"
           >
             สั่งทำแบบนี้
           </Link>

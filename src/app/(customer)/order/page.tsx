@@ -4,7 +4,15 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { orderApi, authApi, addressApi } from "@/lib/api/client";
-import type { EventType, OrderMode, Province, District, SubDistrict } from "@/types";
+import type {
+  EventType,
+  Gender,
+  OrderMode,
+  Province,
+  District,
+  SubDistrict,
+  TitlePrefix,
+} from "@/types";
 
 type Step = 1 | 2 | 3;
 
@@ -16,6 +24,14 @@ const EVENT_TYPE_OPTIONS: { value: EventType; label: string }[] = [
   { value: "graduation", label: "รับปริญญา" },
   { value: "other", label: "อื่นๆ" },
 ];
+
+const TITLE_PREFIX_OPTIONS: TitlePrefix[] = ["นาย", "นาง", "นางสาว", "ดร.", "รศ.", "ศ.", "อื่นๆ"];
+const GENDER_OPTIONS: Gender[] = ["ชาย", "หญิง", "อื่นๆ"];
+const TITLE_PREFIX_BY_GENDER: Record<Gender, TitlePrefix[]> = {
+  ชาย: ["นาย", "ดร.", "รศ.", "ศ.", "อื่นๆ"],
+  หญิง: ["นาง", "นางสาว", "ดร.", "รศ.", "ศ.", "อื่นๆ"],
+  "อื่นๆ": ["ดร.", "รศ.", "ศ.", "อื่นๆ"],
+};
 
 interface FormState {
   mode: OrderMode;
@@ -31,6 +47,8 @@ interface FormState {
   color_notes: string;
   customization_notes: string;
   // Auth
+  title_prefix: TitlePrefix;
+  gender: Gender;
   name: string;
   phone: string;
   email: string;
@@ -49,6 +67,8 @@ const defaultForm: FormState = {
   budget_max: "",
   color_notes: "",
   customization_notes: "",
+  title_prefix: "นาย",
+  gender: "ชาย",
   name: "",
   phone: "",
   email: "",
@@ -67,6 +87,15 @@ export default function OrderPage() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+
+  const guestTitleOptions = TITLE_PREFIX_BY_GENDER[form.gender];
+
+  useEffect(() => {
+    if (!guestTitleOptions.includes(form.title_prefix)) {
+      setForm((f) => ({ ...f, title_prefix: guestTitleOptions[0] }));
+    }
+  }, [form.gender, form.title_prefix, guestTitleOptions]);
 
   // Check login state
   useEffect(() => {
@@ -75,23 +104,87 @@ export default function OrderPage() {
 
   // Load provinces
   useEffect(() => {
-    addressApi.listProvinces().then((res) => setProvinces(res.data.data ?? []));
+    let ignore = false;
+    const load = async () => {
+      try {
+        const res = await addressApi.listProvinces();
+        if (!ignore) {
+          setProvinces(res.data.data ?? []);
+          setNetworkError(null);
+        }
+      } catch {
+        if (!ignore) {
+          setProvinces([]);
+          setNetworkError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
+        }
+      }
+    };
+    void load();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   // Load districts when province changes
   useEffect(() => {
-    if (!form.province_id) { setDistricts([]); setSubDistricts([]); return; }
-    addressApi.listDistricts(form.province_id).then((res) => setDistricts(res.data.data ?? []));
+    if (!form.province_id) {
+      setDistricts([]);
+      setSubDistricts([]);
+      return;
+    }
+
+    let ignore = false;
+    const load = async () => {
+      try {
+        const res = await addressApi.listDistricts(form.province_id);
+        if (!ignore) {
+          setDistricts(res.data.data ?? []);
+          setNetworkError(null);
+        }
+      } catch {
+        if (!ignore) {
+          setDistricts([]);
+          setSubDistricts([]);
+          setNetworkError("ไม่สามารถโหลดข้อมูลอำเภอได้ กรุณาลองใหม่");
+        }
+      }
+    };
+    void load();
+
     setForm((f) => ({ ...f, district_id: "", sub_district_id: "" }));
+    return () => {
+      ignore = true;
+    };
   }, [form.province_id]);
 
   // Load sub-districts when district changes
   useEffect(() => {
-    if (!form.district_id) { setSubDistricts([]); return; }
-    addressApi.listSubDistricts(form.district_id).then((res) =>
-      setSubDistricts(res.data.data ?? [])
-    );
+    if (!form.district_id) {
+      setSubDistricts([]);
+      return;
+    }
+
+    let ignore = false;
+    const load = async () => {
+      try {
+        const res = await addressApi.listSubDistricts(form.district_id);
+        if (!ignore) {
+          setSubDistricts(res.data.data ?? []);
+          setNetworkError(null);
+        }
+      } catch {
+        if (!ignore) {
+          setSubDistricts([]);
+          setNetworkError("ไม่สามารถโหลดข้อมูลตำบลได้ กรุณาลองใหม่");
+        }
+      }
+    };
+    void load();
+
     setForm((f) => ({ ...f, sub_district_id: "" }));
+    return () => {
+      ignore = true;
+    };
   }, [form.district_id]);
 
   const set = (field: keyof FormState, value: string) =>
@@ -101,6 +194,8 @@ export default function OrderPage() {
   const registerMutation = useMutation({
     mutationFn: () =>
       authApi.register({
+        title_prefix: form.title_prefix,
+        gender: form.gender,
         name: form.name,
         phone: form.phone,
         email: form.email || undefined,
@@ -134,10 +229,14 @@ export default function OrderPage() {
   });
 
   async function handleSubmit() {
-    if (!isLoggedIn) {
-      await registerMutation.mutateAsync();
+    try {
+      if (!isLoggedIn) {
+        await registerMutation.mutateAsync();
+      }
+      await orderMutation.mutateAsync();
+    } catch {
+      setNetworkError("ส่งคำสั่งซื้อไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่");
     }
-    orderMutation.mutate();
   }
 
   const isLoading = registerMutation.isPending || orderMutation.isPending;
@@ -154,7 +253,7 @@ export default function OrderPage() {
         </p>
         <a
           href={`/order/status/${submittedOrderId}`}
-          className="inline-block bg-amber-700 text-white px-8 py-3 rounded-xl font-semibold hover:bg-amber-800 transition"
+          className="inline-block bg-emerald-800 text-white px-8 py-3 rounded-xl font-semibold hover:bg-emerald-900 transition"
         >
           ติดตามคำสั่งซื้อ
         </a>
@@ -172,12 +271,12 @@ export default function OrderPage() {
           <div key={s} className="flex items-center gap-2">
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold transition ${
-                step >= s ? "bg-amber-700 text-white" : "bg-gray-200 text-gray-400"
+                step >= s ? "bg-emerald-800 text-white" : "bg-gray-200 text-gray-400"
               }`}
             >
               {s}
             </div>
-            {s < 2 && <div className={`h-0.5 w-12 ${step > s ? "bg-amber-700" : "bg-gray-200"}`} />}
+            {s < 2 && <div className={`h-0.5 w-12 ${step > s ? "bg-emerald-800" : "bg-gray-200"}`} />}
           </div>
         ))}
         <span className="ml-2 text-sm text-gray-500">
@@ -209,8 +308,8 @@ export default function OrderPage() {
               onClick={() => set("mode", opt.value)}
               className={`w-full text-left border-2 rounded-xl p-4 transition ${
                 form.mode === opt.value
-                  ? "border-amber-700 bg-amber-50"
-                  : "border-gray-200 hover:border-amber-300"
+                  ? "border-emerald-800 bg-emerald-50"
+                  : "border-gray-200 hover:border-emerald-300"
               }`}
             >
               <p className="font-semibold text-gray-800">{opt.label}</p>
@@ -219,7 +318,7 @@ export default function OrderPage() {
           ))}
           <button
             onClick={() => setStep(2)}
-            className="w-full bg-amber-700 text-white py-3 rounded-xl font-semibold hover:bg-amber-800 transition mt-2"
+            className="w-full bg-emerald-800 text-white py-3 rounded-xl font-semibold hover:bg-emerald-900 transition mt-2"
           >
             ถัดไป →
           </button>
@@ -235,7 +334,7 @@ export default function OrderPage() {
             <select
               value={form.event_type}
               onChange={(e) => set("event_type", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
             >
               {EVENT_TYPE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -252,7 +351,7 @@ export default function OrderPage() {
               type="date"
               value={form.event_date}
               onChange={(e) => set("event_date", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
           </div>
 
@@ -266,7 +365,7 @@ export default function OrderPage() {
               value={form.event_location}
               onChange={(e) => set("event_location", e.target.value)}
               placeholder="ชื่อสถานที่ หรือที่อยู่"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
           </div>
 
@@ -277,7 +376,7 @@ export default function OrderPage() {
               <select
                 value={form.province_id}
                 onChange={(e) => set("province_id", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
               >
                 <option value="">เลือกจังหวัด</option>
                 {provinces.map((p) => (
@@ -291,7 +390,7 @@ export default function OrderPage() {
                 value={form.district_id}
                 onChange={(e) => set("district_id", e.target.value)}
                 disabled={!form.province_id}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-40"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-40"
               >
                 <option value="">เลือกอำเภอ</option>
                 {districts.map((d) => (
@@ -305,7 +404,7 @@ export default function OrderPage() {
                 value={form.sub_district_id}
                 onChange={(e) => set("sub_district_id", e.target.value)}
                 disabled={!form.district_id}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-40"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-40"
               >
                 <option value="">เลือกตำบล</option>
                 {subDistricts.map((s) => (
@@ -327,7 +426,7 @@ export default function OrderPage() {
                   value={form.budget_min}
                   onChange={(e) => set("budget_min", e.target.value)}
                   placeholder="500"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
               </div>
               <div>
@@ -339,7 +438,7 @@ export default function OrderPage() {
                   value={form.budget_max}
                   onChange={(e) => set("budget_max", e.target.value)}
                   placeholder="2000"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
               </div>
             </div>
@@ -353,7 +452,7 @@ export default function OrderPage() {
               value={form.color_notes}
               onChange={(e) => set("color_notes", e.target.value)}
               placeholder="เช่น สีขาว เหลือง ชมพู"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
           </div>
           <div>
@@ -365,7 +464,7 @@ export default function OrderPage() {
               onChange={(e) => set("customization_notes", e.target.value)}
               rows={3}
               placeholder="แจ้งรายละเอียดเพิ่มเติมที่ต้องการ"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
           </div>
 
@@ -373,26 +472,50 @@ export default function OrderPage() {
           {!isLoggedIn && (
             <div className="border-t pt-5 space-y-3">
               <p className="text-sm font-medium text-gray-700">ข้อมูลติดต่อ</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <select
+                  value={form.title_prefix}
+                  onChange={(e) => set("title_prefix", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                >
+                  {guestTitleOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={form.gender}
+                  onChange={(e) => set("gender", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                >
+                  {GENDER_OPTIONS.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 placeholder="ชื่อ-นามสกุล *"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
               />
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => set("phone", e.target.value)}
                 placeholder="เบอร์โทรศัพท์ *"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
               />
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
                 placeholder="อีเมล (ไม่บังคับ)"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
               />
             </div>
           )}
@@ -401,6 +524,10 @@ export default function OrderPage() {
             <p className="text-red-500 text-sm">
               เกิดข้อผิดพลาด กรุณาลองอีกครั้ง
             </p>
+          )}
+
+          {networkError && (
+            <p className="text-red-500 text-sm">{networkError}</p>
           )}
 
           <div className="flex gap-3">
@@ -412,8 +539,13 @@ export default function OrderPage() {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isLoading || !form.event_date || !form.event_location}
-              className="flex-2 flex-1 bg-amber-700 text-white py-3 rounded-xl font-semibold hover:bg-amber-800 transition disabled:opacity-50"
+              disabled={
+                isLoading ||
+                !form.event_date ||
+                !form.event_location ||
+                (!isLoggedIn && (!form.name || !form.phone))
+              }
+              className="flex-2 flex-1 bg-emerald-800 text-white py-3 rounded-xl font-semibold hover:bg-emerald-900 transition disabled:opacity-50"
             >
               {isLoading ? "กำลังส่ง..." : "ส่งคำสั่งซื้อ"}
             </button>
