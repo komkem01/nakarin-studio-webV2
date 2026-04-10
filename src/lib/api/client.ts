@@ -84,6 +84,12 @@ export const orderApi = {
 
   addNote: (id: string, content: string) =>
     api.post<ApiResponse<OrderNote>>(`/orders/${id}/notes`, { content }),
+
+  acceptQuote: (orderId: string, quoteId: string) =>
+    api.patch<ApiResponse<Quote>>(`/orders/${orderId}/quotes/${quoteId}/accept`),
+
+  rejectQuote: (orderId: string, quoteId: string) =>
+    api.patch<ApiResponse<Quote>>(`/orders/${orderId}/quotes/${quoteId}/reject`),
 };
 
 // ── Address ──────────────────────────────────────────────────────────────────

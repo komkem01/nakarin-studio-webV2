@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderApi } from "@/lib/api/client";
-import type { Order, OrderStatus } from "@/types";
+import type { Order, OrderStatus, Quote } from "@/types";
 
 const STATUS_CONFIG: Record<
   OrderStatus,
@@ -33,6 +33,7 @@ export default function OrderStatusPage({
 }) {
   const { id } = params;
   const [copied, setCopied] = useState(false);
+  const qc = useQueryClient();
 
   const { data, isPending, isError } = useQuery<Order>({
     queryKey: ["order", id],
@@ -41,6 +42,16 @@ export default function OrderStatusPage({
       return res.data.data;
     },
     refetchInterval: 30_000,
+  });
+
+  const acceptQuote = useMutation({
+    mutationFn: (quoteId: string) => orderApi.acceptQuote(id, quoteId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["order", id] }),
+  });
+
+  const rejectQuote = useMutation({
+    mutationFn: (quoteId: string) => orderApi.rejectQuote(id, quoteId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["order", id] }),
   });
 
   const copyOrderId = async (orderId: string) => {
@@ -171,7 +182,7 @@ export default function OrderStatusPage({
             <p className="text-xs font-semibold text-emerald-700 uppercase tracking-widest">ใบเสนอราคา</p>
           </div>
           <div className="divide-y divide-gray-100">
-            {data.quotes.map((q) => (
+            {data.quotes.map((q: Quote) => (
               <div key={q.id} className="px-5 py-4 text-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xl font-bold text-emerald-800">
@@ -194,6 +205,24 @@ export default function OrderStatusPage({
                   <a href={q.file_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-emerald-700 text-xs font-medium underline underline-offset-2">
                     ดูไฟล์ใบเสนอราคา ↗
                   </a>
+                )}
+                {q.status === "pending" && (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => rejectQuote.mutate(q.id)}
+                      disabled={acceptQuote.isPending || rejectQuote.isPending}
+                      className="px-4 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      ปฏิเสธ
+                    </button>
+                    <button
+                      onClick={() => acceptQuote.mutate(q.id)}
+                      disabled={acceptQuote.isPending || rejectQuote.isPending}
+                      className="px-4 py-1.5 rounded-lg bg-emerald-800 text-white text-sm font-semibold hover:bg-emerald-900 transition disabled:opacity-50"
+                    >
+                      {acceptQuote.isPending ? "กำลังบันทึก..." : "ยอมรับ"}
+                    </button>
+                  </div>
                 )}
               </div>
             ))}

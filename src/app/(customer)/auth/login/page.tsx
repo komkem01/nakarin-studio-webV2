@@ -36,71 +36,103 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-yellow-50 flex items-start justify-center px-4 py-20">
+    <main className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: "linear-gradient(135deg, #f0faf5 0%, #fffdf5 50%, #fdf8ee 100%)" }}>
       <div className="w-full max-w-sm">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <p className="text-yellow-700 tracking-[0.18em] text-xs font-semibold uppercase mb-2">Nakarin Studio</p>
-          <h1 className="text-3xl font-bold text-emerald-950">เข้าสู่ระบบ</h1>
-          <p className="text-gray-500 mt-2 text-sm">จัดการคำสั่งซื้อและติดตามสถานะงานของคุณ</p>
+
+        {/* Brand mark */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-800 shadow-lg mb-5">
+            <span className="text-2xl select-none">🌿</span>
+          </div>
+          <h1 className="text-2xl font-bold text-emerald-950 tracking-tight">เข้าสู่ระบบ</h1>
+          <p className="text-gray-400 mt-1.5 text-sm">นครินทร์ สตูดิโอ — บายศรีสำหรับทุกงานสำคัญ</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-          <form onSubmit={onSubmit} className="px-6 py-6 space-y-4">
+        {/* Card */}
+        <div className="bg-white rounded-3xl shadow-xl shadow-emerald-900/5 border border-gray-100 overflow-hidden">
+
+          {/* Gold accent bar */}
+          <div className="h-1 w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-400" />
+
+          <form onSubmit={onSubmit} className="px-7 py-7 space-y-5">
+
+            {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">เบอร์โทรศัพท์</label>
-              <input
-                type="tel"
-                required
-                placeholder="08x-xxx-xxxx"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-gray-300"
-              />
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                เบอร์โทรศัพท์
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 text-base select-none">📱</span>
+                <input
+                  type="tel"
+                  required
+                  placeholder="08x-xxx-xxxx"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-gray-300 transition"
+                />
+              </div>
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">รหัสผ่าน</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                รหัสผ่าน
+              </label>
               <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 text-base select-none">🔒</span>
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-16 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-gray-300"
+                  className="w-full border border-gray-200 rounded-xl pl-10 pr-16 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-gray-300 transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-emerald-700 font-medium transition"
                 >
                   {showPassword ? "ซ่อน" : "แสดง"}
                 </button>
               </div>
             </div>
 
+            {/* Error */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-                {error}
+              <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+                <span className="shrink-0 mt-0.5">⚠</span>
+                <span>{error}</span>
               </div>
             )}
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-800 text-white py-3 rounded-xl font-semibold hover:bg-emerald-900 active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-emerald-800 text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-emerald-900 active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm shadow-emerald-900/20"
             >
-              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              {loading ? (
+                <span className="inline-flex items-center gap-2 justify-center">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  กำลังเข้าสู่ระบบ...
+                </span>
+              ) : "เข้าสู่ระบบ"}
             </button>
+
+            {/* Footer link */}
+            <p className="text-center text-sm text-gray-400 pt-1">
+              ยังไม่มีบัญชี?{" "}
+              <Link href="/auth/register" className="text-emerald-700 font-semibold hover:text-emerald-900 transition">
+                สมัครสมาชิก
+              </Link>
+            </p>
           </form>
         </div>
 
-        <p className="text-sm text-gray-500 mt-5 text-center">
-          ยังไม่มีบัญชี?{" "}
-          <Link href="/auth/register" className="text-emerald-700 font-medium hover:underline">
-            สมัครสมาชิก
-          </Link>
+        <p className="text-center text-xs text-gray-300 mt-6">
+          © {new Date().getFullYear()} Nakarin Studio. All rights reserved.
         </p>
       </div>
     </main>
