@@ -1,3 +1,9 @@
+<script setup lang="ts">
+const { start, stop } = useAdminActivityWatcher()
+onMounted(start)
+onUnmounted(stop)
+</script>
+
 <template>
   <div class="min-h-screen bg-[#f8fafc] flex">
     <AdminSidebar />

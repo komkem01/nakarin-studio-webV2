@@ -10,6 +10,8 @@ const titleMap: Record<string, string> = {
   '/admin/messages': 'จัดการข้อความ',
   '/admin/users': 'จัดการผู้ใช้งาน',
   '/admin/admins': 'จัดการแอดมิน',
+  '/admin/profile': 'โปรไฟล์ของฉัน',
+  '/admin/settings': 'ตั้งค่าระบบ',
 }
 
 const pageTitle = computed(() => titleMap[route.path] || 'Admin')
@@ -44,8 +46,8 @@ const pageTitle = computed(() => titleMap[route.path] || 'Admin')
           </svg>
         </summary>
         <ul class="menu dropdown-content mt-2 z-[60] w-48 rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
-          <li><button type="button">โปรไฟล์</button></li>
-          <li><button type="button">ตั้งค่า</button></li>
+          <li><NuxtLink to="/admin/profile">โปรไฟล์</NuxtLink></li>
+          <li><NuxtLink to="/admin/settings">ตั้งค่า</NuxtLink></li>
         </ul>
       </details>
     </div>
