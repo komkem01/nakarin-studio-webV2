@@ -210,10 +210,7 @@ onMounted(() => {
       <div class="relative">
         <div class="flex items-center gap-3">
           <div class="flex items-center justify-center w-9 h-9 bg-white/10 border border-white/20">
-            <svg class="w-4.5 h-4.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2C8 2 5 5 5 8c0 4 4 7 7 10 3-3 7-6 7-10 0-3-2.7-6-7-6z"/>
-              <path d="M12 8v4M10 10h4"/>
-            </svg>
+            <span class="text-white text-base font-extrabold leading-none tracking-tight">N</span>
           </div>
           <div>
             <p class="text-xs font-bold tracking-[0.2em] uppercase text-white">Nakarin Studio</p>
@@ -239,7 +236,7 @@ onMounted(() => {
     </div>
 
     <!-- Right form panel -->
-    <div class="flex-1 h-screen overflow-y-auto flex items-start lg:items-center justify-center p-6 sm:p-10 lg:p-14 bg-[radial-gradient(circle_at_top_right,#f0fdf4_0%,#ffffff_45%)]">
+    <div class="flex-1 h-screen overflow-y-auto flex items-center justify-center p-6 sm:p-10 lg:p-14 bg-[radial-gradient(circle_at_top_right,#f0fdf4_0%,#ffffff_45%)]">
       <div class="w-full max-w-sm">
         <AdminAuthAuthBrand
           title="เข้าสู่ระบบ"

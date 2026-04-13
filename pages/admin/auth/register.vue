@@ -338,10 +338,7 @@ onBeforeUnmount(() => {
       <div class="relative">
         <div class="flex items-center gap-3">
           <div class="flex items-center justify-center w-9 h-9 bg-white/10 border border-white/20">
-            <svg class="w-4.5 h-4.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2C8 2 5 5 5 8c0 4 4 7 7 10 3-3 7-6 7-10 0-3-2.7-6-7-6z"/>
-              <path d="M12 8v4M10 10h4"/>
-            </svg>
+            <span class="text-white text-base font-extrabold leading-none tracking-tight">N</span>
           </div>
           <div>
             <p class="text-xs font-bold tracking-[0.2em] uppercase text-white">Nakarin Studio</p>
@@ -369,7 +366,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Right form panel -->
-    <div class="flex-1 h-screen overflow-y-auto flex items-start lg:items-center justify-center p-6 sm:p-10 lg:p-14">
+    <div class="flex-1 h-screen overflow-y-auto flex items-start justify-center p-6 sm:p-10 lg:p-14">
       <div class="w-full max-w-xl">
         <AdminAuthAuthBrand
           title="ลงทะเบียน Admin"
@@ -577,7 +574,8 @@ onBeforeUnmount(() => {
                   :disabled="!canFillMoreFields"
                 />
                 <button type="button" tabindex="-1"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  :disabled="!canFillMoreFields"
                   @click="showPassword = !showPassword"
                 >
                   <svg v-if="showPassword" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -622,7 +620,8 @@ onBeforeUnmount(() => {
                   :disabled="!canFillMoreFields"
                 />
                 <button type="button" tabindex="-1"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  :disabled="!canFillMoreFields"
                   @click="showConfirmPassword = !showConfirmPassword"
                 >
                   <svg v-if="showConfirmPassword" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
