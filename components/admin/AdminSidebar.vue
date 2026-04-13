@@ -16,7 +16,7 @@ const accordionItems = [
       { label: 'จัดการสินค้า', to: '/admin/products', icon: 'products' },
       { label: 'จัดการหมวดหมู่สินค้า', to: '/admin/product-categories', icon: 'categories' },
       { label: 'จัดการแพคเกจ', to: '/admin/packages', icon: 'packages' },
-      { label: 'จัดการออเดอร์', to: '/admin/orders', icon: 'orders' },
+      { label: 'จัดการออเดอร์', to: '/admin/bookings', icon: 'orders' },
       { label: 'จัดการข้อความ', to: '/admin/messages', icon: 'messages' },
     ],
   },

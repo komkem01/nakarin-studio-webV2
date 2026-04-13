@@ -10,6 +10,12 @@ export default defineNuxtConfig({
     },
   },
 
+  vue: {
+    compilerOptions: {
+      isCustomElement: (tag) => tag.startsWith('calendar-'),
+    },
+  },
+
   // Route rules: separate admin and customer sections
   routeRules: {
     '/admin/**': { ssr: false },

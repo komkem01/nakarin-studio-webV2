@@ -7,5 +7,6 @@
         <slot />
       </main>
     </div>
+    <BaseToast position="top-end" />
   </div>
 </template>

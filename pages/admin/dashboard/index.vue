@@ -7,31 +7,40 @@ type ApiEnvelope<T> = {
 }
 
 type OverviewResponse = {
-  membersCount?: number
-  bookingsCount?: number
-  productsCount?: number
+  members_count?: number
+  member_accounts_count?: number
+  bookings_count?: number
+  products_count?: number
+  promotions_count?: number
+  categories_count?: number
 }
 
 type AnalyticsOverviewResponse = {
-  totalRevenue?: number
-  averageOrder?: number
-  totalBookings?: number
+  total_revenue?: number
+  average_order?: number
+  total_bookings?: number
+  bookings_by_status?: { status: string; count: number }[]
 }
 
 type AnalyticsDailyPoint = {
   date?: string
-  totalBookings?: number
-  totalRevenue?: number
+  total_bookings?: number
+  total_revenue?: number
+  average_order?: number
+  cumulative_bookings?: number
+  cumulative_revenue?: number
 }
 
 type AnalyticsDailyResponse = {
   series?: AnalyticsDailyPoint[]
+  generated_at?: string
 }
 
 const { authFetch, clearSession } = useAdminSession()
 
 const loading = ref(true)
 const errorMessage = ref('')
+const generatedAt = ref('')
 
 const stats = reactive({
   bookings: 0,
@@ -54,38 +63,55 @@ const shortDate = (date: string) => {
   return new Date(date).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
 }
 
-const chartPoints = computed(() => {
-  const points = series.value
-  if (!points.length) return ''
+const shortRevenue = (v: number) => {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}ล.`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`
+  return v.toFixed(0)
+}
 
-  const width = 760
-  const height = 220
-  const left = 14
-  const right = 14
-  const top = 12
-  const bottom = 24
-  const chartWidth = width - left - right
-  const chartHeight = height - top - bottom
+const CHART = { width: 760, height: 260, left: 52, right: 14, top: 16, bottom: 40 }
 
-  const values = points.map(item => item.revenue)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = Math.max(max - min, 1)
+const chartCoords = computed(() => {
+  const pts = series.value
+  if (!pts.length) return { polyline: '', dots: [] as {cx:number,cy:number}[], xLabels: [] as {x:number,label:string}[], yLines: [] as {y:number,label:string}[] }
 
-  return points
-    .map((item, index) => {
-      const x = left + (points.length === 1 ? chartWidth / 2 : (index / (points.length - 1)) * chartWidth)
-      const normalized = (item.revenue - min) / range
-      const y = top + (1 - normalized) * chartHeight
-      return `${x},${y}`
-    })
-    .join(' ')
+  const cw = CHART.width - CHART.left - CHART.right
+  const ch = CHART.height - CHART.top - CHART.bottom
+
+  const revenues = pts.map(p => p.revenue)
+  const minR = Math.min(...revenues)
+  const maxR = Math.max(...revenues)
+  const range = Math.max(maxR - minR, 1)
+
+  const xOf = (i: number) => CHART.left + (pts.length === 1 ? cw / 2 : (i / (pts.length - 1)) * cw)
+  const yOf = (v: number) => CHART.top + (1 - (v - minR) / range) * ch
+
+  const polyline = pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.revenue).toFixed(1)}`).join(' ')
+
+  const dots = pts.map((p, i) => ({ cx: xOf(i), cy: yOf(p.revenue) }))
+
+  // X-axis: show at most 7 date labels evenly spaced
+  const maxLabels = Math.min(7, pts.length)
+  const step = pts.length <= maxLabels ? 1 : Math.round((pts.length - 1) / (maxLabels - 1))
+  const xLabels: { x: number; label: string }[] = []
+  for (let i = 0; i < pts.length - 1; i += step) {
+    xLabels.push({ x: xOf(i), label: shortDate(pts[i].date) })
+  }
+  xLabels.push({ x: xOf(pts.length - 1), label: shortDate(pts[pts.length - 1].date) })
+
+  // Y-axis: 4 horizontal grid lines
+  const yLineCount = 4
+  const yLines = Array.from({ length: yLineCount + 1 }, (_, i) => {
+    const v = minR + (i / yLineCount) * range
+    return { y: yOf(v), label: shortRevenue(v) }
+  })
+
+  return { polyline, dots, xLabels, yLines }
 })
 
 const lastUpdated = computed(() => {
-  const last = series.value[series.value.length - 1]
-  if (!last?.date) return '-'
-  return new Date(last.date).toLocaleString('th-TH', {
+  if (!generatedAt.value) return '-'
+  return new Date(generatedAt.value).toLocaleString('th-TH', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -119,19 +145,20 @@ const fetchDashboard = async () => {
     const analytics = analyticsRes?.data || {}
     const daily = dailyRes?.data || {}
 
-    stats.bookings = Number(overview.bookingsCount || analytics.totalBookings || 0)
-    stats.members = Number(overview.membersCount || 0)
-    stats.products = Number(overview.productsCount || 0)
-    stats.revenue = Number(analytics.totalRevenue || 0)
-    stats.averageOrder = Number(analytics.averageOrder || 0)
+    stats.bookings = Number(overview.bookings_count || analytics.total_bookings || 0)
+    stats.members = Number(overview.members_count || 0)
+    stats.products = Number(overview.products_count || 0)
+    stats.revenue = Number(analytics.total_revenue || 0)
+    stats.averageOrder = Number(analytics.average_order || 0)
 
     series.value = (daily.series || [])
       .map(item => ({
         date: String(item.date || ''),
-        revenue: Number(item.totalRevenue || 0),
-        bookings: Number(item.totalBookings || 0),
+        revenue: Number(item.total_revenue || 0),
+        bookings: Number(item.total_bookings || 0),
       }))
       .filter(item => item.date)
+    generatedAt.value = String(daily.generated_at || '')
   } catch (error) {
     const e = error as { statusCode?: number, response?: { status?: number } }
     const status = e?.statusCode || e?.response?.status
@@ -190,17 +217,39 @@ onMounted(fetchDashboard)
         </div>
 
         <div class="mt-4 rounded-xl bg-[#f8fafc] border border-neutral-200 p-3">
-          <svg viewBox="0 0 760 220" class="w-full h-56">
+          <svg viewBox="0 0 760 260" class="w-full h-64">
+            <!-- Grid lines + Y-axis labels -->
+            <template v-for="(line, i) in chartCoords.yLines" :key="'y'+i">
+              <line :x1="CHART.left" :y1="line.y" :x2="CHART.width - CHART.right" :y2="line.y" stroke="#e2e8f0" stroke-width="1" />
+              <text :x="CHART.left - 4" :y="line.y + 4" text-anchor="end" fill="#94a3b8" font-size="9">{{ line.label }}</text>
+            </template>
+            <!-- Line -->
             <polyline
-              v-if="chartPoints"
-              :points="chartPoints"
+              v-if="chartCoords.polyline"
+              :points="chartCoords.polyline"
               fill="none"
               stroke="#166534"
-              stroke-width="3"
+              stroke-width="2.5"
               stroke-linecap="round"
               stroke-linejoin="round"
             />
-            <text v-else x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#64748b" font-size="14">
+            <!-- Dots -->
+            <circle
+              v-for="(dot, i) in chartCoords.dots"
+              :key="'d'+i"
+              :cx="dot.cx"
+              :cy="dot.cy"
+              r="2.5"
+              fill="white"
+              stroke="#166534"
+              stroke-width="1.5"
+            />
+            <!-- X-axis labels -->
+            <template v-for="(lbl, i) in chartCoords.xLabels" :key="'x'+i">
+              <text :x="lbl.x" :y="CHART.height - 10" text-anchor="middle" fill="#94a3b8" font-size="9">{{ lbl.label }}</text>
+            </template>
+            <!-- Empty state -->
+            <text v-if="!chartCoords.polyline" x="380" y="130" text-anchor="middle" dominant-baseline="middle" fill="#64748b" font-size="14">
               ไม่มีข้อมูลกราฟสำหรับช่วงเวลานี้
             </text>
           </svg>

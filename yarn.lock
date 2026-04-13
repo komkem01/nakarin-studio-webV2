@@ -2438,6 +2438,11 @@ async@^3.2.4:
   resolved "https://registry.yarnpkg.com/async/-/async-3.2.6.tgz#1b0728e14929d51b85b449b7f06e27c1145e38ce"
   integrity sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==
 
+atomico@^1.79.2:
+  version "1.79.2"
+  resolved "https://registry.yarnpkg.com/atomico/-/atomico-1.79.2.tgz#eebff0e65fe12fdf2d751f57ec66e8057e923ddc"
+  integrity sha512-mshhLRMeIltNYbnQnqgnrvJ/uDa8XDfTQcjw3ymOygQqwHIQ4Sp0LcNYMCbACkV3DtV+eDXb9szwU4qMUuGwYQ==
+
 autoprefixer@^10.4.27:
   version "10.4.27"
   resolved "https://registry.yarnpkg.com/autoprefixer/-/autoprefixer-10.4.27.tgz#51ea301a5c3c5f8642f8e564759c4f573be486f2"
@@ -2630,6 +2635,13 @@ cac@^6.7.14:
   version "6.7.14"
   resolved "https://registry.yarnpkg.com/cac/-/cac-6.7.14.tgz#804e1e6f506ee363cb0e3ccbb09cad5dd9870959"
   integrity sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==
+
+cally@^0.9.2:
+  version "0.9.2"
+  resolved "https://registry.yarnpkg.com/cally/-/cally-0.9.2.tgz#41e725570ebc1d5eadeefa6a81e29563c4f0a182"
+  integrity sha512-zY/Ueh+p6O+LKPYqNB13dATgNuazAHS0n3JbtKyUmMoQfRq5mC2/zFI3UV2X3g+2lZn2BBwr1Z+HxyG9Dt/6lw==
+  dependencies:
+    atomico "^1.79.2"
 
 caniuse-api@^3.0.0:
   version "3.0.0"
