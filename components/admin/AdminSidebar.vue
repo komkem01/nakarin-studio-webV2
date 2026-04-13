@@ -61,7 +61,7 @@ const logout = async () => {
 
       <div class="mt-4 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-3.5 py-3">
         <p class="text-[11px] uppercase tracking-[0.16em] text-[#166534] font-semibold">แผงผู้ดูแลระบบ</p>
-        <p class="text-xs text-neutral-600 mt-1">จัดการข้อมูลทั้งหมดของระบบจากเมนูด้านล่าง</p>
+        <p class="text-xs text-neutral-600 mt-1">จัดการข้อมูลทั้งหมดของระบบ</p>
       </div>
     </div>
 
