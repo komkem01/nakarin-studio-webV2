@@ -13,7 +13,7 @@ export interface ToastItem {
 
 const toasts = ref<ToastItem[]>([])
 
-export const useToast = () => {
+export const useAppToast = () => {
   const add = (message: string, type: ToastType = 'info', duration = 3000) => {
     const id = Math.random().toString(36).slice(2)
     toasts.value.push({ id, message, type, duration })

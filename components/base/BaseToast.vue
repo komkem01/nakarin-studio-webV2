@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ToastPosition } from '~/composables/useToast'
+import type { ToastPosition } from '~/composables/useAppToast'
 
 const props = withDefaults(defineProps<{
   position?: ToastPosition
@@ -7,7 +7,7 @@ const props = withDefaults(defineProps<{
   position: 'top-end',
 })
 
-const { toasts, remove } = useToast()
+const { toasts, remove } = useAppToast()
 
 const positionClasses = computed(() => {
   const map: Record<string, string> = {

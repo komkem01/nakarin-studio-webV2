@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-[#f0fdf4] flex flex-col">
+  <div class="min-h-screen bg-[#f8fafc] flex">
     <AdminSidebar />
-    <div class="flex flex-col flex-1 md:pl-64">
+    <div class="flex flex-col flex-1 md:pl-72">
       <AdminHeader />
-      <main class="flex-1 p-6">
+      <main class="flex-1 p-4 sm:p-6 lg:p-8">
         <slot />
       </main>
     </div>

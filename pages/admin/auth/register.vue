@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useToast as useAppToast } from '~/composables/useToast'
+import { useAppToast } from '~/composables/useAppToast'
 
 definePageMeta({
   layout: 'admin-auth',
