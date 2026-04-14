@@ -126,6 +126,33 @@ const topRevenueDay = computed(() => {
   return { label: shortDate(best.date), value: best.revenue }
 })
 
+const statCards = computed(() => [
+  {
+    key: 'bookings',
+    label: 'ออเดอร์ทั้งหมด',
+    value: loading.value ? '-' : stats.bookings.toLocaleString('th-TH'),
+    tone: 'from-sky-50 to-cyan-50 border-sky-100 text-sky-700',
+  },
+  {
+    key: 'members',
+    label: 'สมาชิกทั้งหมด',
+    value: loading.value ? '-' : stats.members.toLocaleString('th-TH'),
+    tone: 'from-emerald-50 to-green-50 border-emerald-100 text-emerald-700',
+  },
+  {
+    key: 'products',
+    label: 'สินค้าทั้งหมด',
+    value: loading.value ? '-' : stats.products.toLocaleString('th-TH'),
+    tone: 'from-amber-50 to-yellow-50 border-amber-100 text-amber-700',
+  },
+  {
+    key: 'revenue',
+    label: 'ยอดขายรวม',
+    value: loading.value ? '-' : currency(stats.revenue),
+    tone: 'from-violet-50 to-fuchsia-50 border-violet-100 text-violet-700',
+  },
+])
+
 const fetchDashboard = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -177,46 +204,46 @@ onMounted(fetchDashboard)
 
 <template>
   <section class="space-y-6">
-    <div class="rounded-2xl border border-neutral-200 bg-gradient-to-r from-[#14532d] to-[#166534] px-6 py-5 text-white shadow-[0_20px_40px_-28px_rgba(21,128,61,0.65)]">
-      <p class="text-xs uppercase tracking-[0.16em] text-white/70 font-semibold">ภาพรวมธุรกิจ</p>
-      <h2 class="mt-1 text-2xl font-bold">แดชบอร์ดผู้ดูแลระบบ</h2>
-      <p class="mt-2 text-sm text-white/80">ข้อมูลสรุปและกราฟรายวันอัปเดตอัตโนมัติจากข้อมูลจริงของระบบ</p>
+    <div class="relative overflow-hidden rounded-3xl border border-slate-700/40 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,.17),transparent_33%),linear-gradient(132deg,#0f172a_0%,#134e4a_45%,#022c22_100%)] px-6 py-6 text-white shadow-[0_18px_45px_-30px_rgba(2,6,23,.95)]">
+      <div class="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-emerald-300/10 blur-2xl" />
+      <div class="pointer-events-none absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-cyan-200/10 blur-2xl" />
+      <p class="text-[11px] uppercase tracking-[0.22em] text-slate-200/90 font-semibold">Business Overview</p>
+      <div class="mt-2 flex flex-wrap items-center gap-3">
+        <h2 class="text-2xl font-bold leading-tight md:text-[30px]">แดชบอร์ดผู้ดูแลระบบ</h2>
+        <span class="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+          รายงานรายวันแบบเรียลไทม์
+        </span>
+      </div>
+      <p class="mt-2 max-w-3xl text-sm text-slate-200/90">สรุปภาพรวมธุรกิจพร้อมกราฟยอดขายรายวันจากข้อมูลจริงของระบบ</p>
     </div>
 
-    <div v-if="errorMessage" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <div v-if="errorMessage" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       {{ errorMessage }}
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <div class="rounded-2xl border border-neutral-200 bg-white p-4">
-        <p class="text-sm text-neutral-500">ออเดอร์ทั้งหมด</p>
-        <p class="text-2xl font-bold text-neutral-900 mt-1">{{ loading ? '-' : stats.bookings.toLocaleString('th-TH') }}</p>
+    <TransitionGroup name="dashboard-cards" tag="div" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        v-for="item in statCards"
+        :key="item.key"
+        class="rounded-3xl border bg-gradient-to-br p-4 shadow-[0_16px_35px_-30px_rgba(15,23,42,.6)] transition-all duration-300 hover:-translate-y-0.5"
+        :class="item.tone"
+      >
+        <p class="text-sm text-slate-500">{{ item.label }}</p>
+        <p class="mt-1 text-2xl font-bold text-slate-900">{{ item.value }}</p>
       </div>
-      <div class="rounded-2xl border border-neutral-200 bg-white p-4">
-        <p class="text-sm text-neutral-500">สมาชิกทั้งหมด</p>
-        <p class="text-2xl font-bold text-neutral-900 mt-1">{{ loading ? '-' : stats.members.toLocaleString('th-TH') }}</p>
-      </div>
-      <div class="rounded-2xl border border-neutral-200 bg-white p-4">
-        <p class="text-sm text-neutral-500">สินค้าทั้งหมด</p>
-        <p class="text-2xl font-bold text-neutral-900 mt-1">{{ loading ? '-' : stats.products.toLocaleString('th-TH') }}</p>
-      </div>
-      <div class="rounded-2xl border border-neutral-200 bg-white p-4">
-        <p class="text-sm text-neutral-500">ยอดขายรวม</p>
-        <p class="text-2xl font-bold text-neutral-900 mt-1">{{ loading ? '-' : currency(stats.revenue) }}</p>
-      </div>
-    </div>
+    </TransitionGroup>
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <div class="xl:col-span-2 rounded-2xl border border-neutral-200 bg-white p-5">
+      <div class="xl:col-span-2 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_20px_45px_-40px_rgba(15,23,42,.65)]">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h3 class="text-base font-semibold text-neutral-900">กราฟยอดขายรายวัน</h3>
-            <p class="text-sm text-neutral-500 mt-1">เส้นกราฟเชื่อมจากข้อมูลจริง 30 วันล่าสุด</p>
+            <h3 class="text-base font-semibold text-slate-900">กราฟยอดขายรายวัน</h3>
+            <p class="mt-1 text-sm text-slate-500">เส้นกราฟเชื่อมจากข้อมูลจริง 30 วันล่าสุด</p>
           </div>
-          <p class="text-xs text-neutral-400">อัปเดตล่าสุด: {{ lastUpdated }}</p>
+          <p class="text-xs text-slate-400">อัปเดตล่าสุด: {{ lastUpdated }}</p>
         </div>
 
-        <div class="mt-4 rounded-xl bg-[#f8fafc] border border-neutral-200 p-3">
+        <div class="mt-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-sky-50/40 p-3">
           <svg viewBox="0 0 760 260" class="w-full h-64">
             <!-- Grid lines + Y-axis labels -->
             <template v-for="(line, i) in chartCoords.yLines" :key="'y'+i">
@@ -256,18 +283,31 @@ onMounted(fetchDashboard)
         </div>
       </div>
 
-      <div class="rounded-2xl border border-neutral-200 bg-white p-5 space-y-4">
-        <h3 class="text-base font-semibold text-neutral-900">ตัวชี้วัดสำคัญ</h3>
-        <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-          <p class="text-xs text-neutral-500">ค่าเฉลี่ยต่อออเดอร์</p>
-          <p class="text-lg font-bold text-neutral-900 mt-1">{{ loading ? '-' : currency(stats.averageOrder) }}</p>
+      <div class="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_20px_45px_-40px_rgba(15,23,42,.65)]">
+        <h3 class="text-base font-semibold text-slate-900">ตัวชี้วัดสำคัญ</h3>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <p class="text-xs text-slate-500">ค่าเฉลี่ยต่อออเดอร์</p>
+          <p class="mt-1 text-lg font-bold text-slate-900">{{ loading ? '-' : currency(stats.averageOrder) }}</p>
         </div>
-        <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-          <p class="text-xs text-neutral-500">วันยอดขายสูงสุด</p>
-          <p class="text-lg font-bold text-neutral-900 mt-1">{{ topRevenueDay.label }}</p>
-          <p class="text-sm text-[#166534] font-semibold mt-1">{{ currency(topRevenueDay.value) }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <p class="text-xs text-slate-500">วันยอดขายสูงสุด</p>
+          <p class="mt-1 text-lg font-bold text-slate-900">{{ topRevenueDay.label }}</p>
+          <p class="mt-1 text-sm font-semibold text-emerald-700">{{ currency(topRevenueDay.value) }}</p>
         </div>
       </div>
     </div>
   </section>
 </template>
+
+<style scoped>
+.dashboard-cards-enter-active,
+.dashboard-cards-leave-active {
+  transition: all 220ms ease;
+}
+
+.dashboard-cards-enter-from,
+.dashboard-cards-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+</style>

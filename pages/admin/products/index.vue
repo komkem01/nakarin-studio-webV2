@@ -422,38 +422,47 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="space-y-4">
-    <div class="rounded-2xl border border-neutral-200 bg-white p-5">
+  <section class="space-y-5">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-700/40 bg-[radial-gradient(circle_at_14%_20%,rgba(255,255,255,.17),transparent_34%),linear-gradient(132deg,#0f172a_0%,#0f3f54_46%,#082f49_100%)] px-6 py-6 text-white shadow-[0_18px_45px_-30px_rgba(2,6,23,.95)]">
+      <div class="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-cyan-300/10 blur-2xl" />
+      <div class="pointer-events-none absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-sky-200/10 blur-2xl" />
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg font-bold text-neutral-900">จัดการสินค้า</h2>
-          <p class="text-sm text-neutral-500 mt-1">ดูรายการสินค้า ค้นหา และเพิ่มสินค้าใหม่</p>
+          <p class="text-[11px] uppercase tracking-[0.22em] text-slate-200/90 font-semibold">Catalog Control</p>
+          <h2 class="mt-2 text-2xl font-bold text-white leading-tight md:text-[30px]">จัดการสินค้า</h2>
+          <p class="mt-2 text-sm text-slate-200/90">ค้นหา แก้ไข และบริหารสถานะสินค้าในคลังแบบรวมศูนย์</p>
         </div>
-        <button type="button" class="rounded-xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#14532d]" @click="openCreateModal">
+        <button type="button" class="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20" @click="openCreateModal">
           เพิ่มสินค้า
         </button>
       </div>
+    </div>
 
-      <div class="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-3">
+    <div class="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_20px_50px_-40px_rgba(15,23,42,.45)] backdrop-blur-sm md:p-5">
+      <div class="grid grid-cols-1 gap-3 lg:grid-cols-4">
         <input
           v-model="filters.q"
           type="text"
           placeholder="ค้นหาชื่อสินค้า หรือ SKU"
-          class="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]"
+          class="ns-admin-input"
           @keyup.enter="applyFilter"
         />
-        <BaseSelectDropdown v-model="filters.categoryId" :options="filterCategoryOptions" placeholder="เลือกหมวดหมู่" />
-        <BaseSelectDropdown v-model="filters.isActive" :options="statusOptions" placeholder="เลือกสถานะ" />
-        <button type="button" class="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50" @click="applyFilter">
+        <BaseSelectDropdown v-model="filters.categoryId" :options="filterCategoryOptions" placeholder="เลือกหมวดหมู่" button-class="border-slate-300" />
+        <BaseSelectDropdown v-model="filters.isActive" :options="statusOptions" placeholder="เลือกสถานะ" button-class="border-slate-300" />
+        <button type="button" class="ns-admin-btn ns-admin-btn-secondary" @click="applyFilter">
           ค้นหา
         </button>
       </div>
     </div>
 
-    <div class="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-sky-50/50 px-4 py-3">
+        <p class="text-sm font-semibold text-slate-800">รายการสินค้า</p>
+        <p class="text-xs text-slate-500">ทั้งหมด {{ meta.total.toLocaleString('th-TH') }} รายการ</p>
+      </div>
       <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
-          <thead class="bg-neutral-50 text-neutral-600">
+          <thead class="bg-slate-50/90 text-slate-700">
             <tr>
               <th class="text-left px-4 py-3 font-semibold">สินค้า</th>
               <th class="text-left px-4 py-3 font-semibold">หมวดหมู่</th>
@@ -466,22 +475,22 @@ onMounted(async () => {
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="7" class="px-4 py-8 text-center text-neutral-500">กำลังโหลดข้อมูล...</td>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">กำลังโหลดข้อมูล...</td>
             </tr>
             <tr v-else-if="!products.length">
-              <td colspan="7" class="px-4 py-8 text-center text-neutral-500">ยังไม่มีข้อมูลสินค้า</td>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">ยังไม่มีข้อมูลสินค้า</td>
             </tr>
-            <tr v-for="item in products" :key="item.id" class="border-t border-neutral-100">
+            <tr v-for="item in products" :key="item.id" class="border-t border-slate-100 transition-colors hover:bg-slate-50/70">
               <td class="px-4 py-3">
-                <p class="font-semibold text-neutral-800">{{ item.name }}</p>
+                <p class="font-semibold text-slate-800">{{ item.name }}</p>
               </td>
-              <td class="px-4 py-3 text-neutral-600">{{ item.categoryName }}</td>
-              <td class="px-4 py-3 text-neutral-600">{{ item.sku }}</td>
-              <td class="px-4 py-3 text-right font-semibold text-neutral-800">{{ currency(item.price) }}</td>
-              <td class="px-4 py-3 text-right text-neutral-700">{{ item.stockQty.toLocaleString('th-TH') }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ item.categoryName }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ item.sku }}</td>
+              <td class="px-4 py-3 text-right font-semibold text-slate-800">{{ currency(item.price) }}</td>
+              <td class="px-4 py-3 text-right text-slate-700">{{ item.stockQty.toLocaleString('th-TH') }}</td>
               <td class="px-4 py-3 text-center">
                 <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-                  :class="item.isActive ? 'bg-green-100 text-green-700' : 'bg-neutral-200 text-neutral-700'">
+                  :class="item.isActive ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-700 border border-slate-300'">
                   {{ item.isActive ? 'ใช้งาน' : 'ปิดใช้งาน' }}
                 </span>
               </td>
@@ -489,7 +498,7 @@ onMounted(async () => {
                 <div class="flex justify-end gap-2">
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-300 bg-white text-neutral-600 hover:border-[#bbf7d0] hover:bg-[#f0fdf4] hover:text-[#166534]"
+                    class="ns-admin-icon-btn"
                     title="แก้ไขสินค้า"
                     @click="openEditModal(item)"
                   >
@@ -500,7 +509,7 @@ onMounted(async () => {
                   </button>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
                     title="ลบสินค้า"
                     @click="requestDelete(item.id)"
                   >
@@ -518,12 +527,12 @@ onMounted(async () => {
         </table>
       </div>
 
-      <div class="flex items-center justify-between px-4 py-3 border-t border-neutral-200 bg-white">
-        <p class="text-xs text-neutral-500">ทั้งหมด {{ meta.total.toLocaleString('th-TH') }} รายการ</p>
+      <div class="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3">
+        <p class="text-xs text-slate-500">ทั้งหมด {{ meta.total.toLocaleString('th-TH') }} รายการ</p>
         <div class="flex items-center gap-2">
-          <button type="button" class="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50" :disabled="filters.page <= 1" @click="prevPage">ก่อนหน้า</button>
-          <span class="text-xs text-neutral-600">หน้า {{ meta.page }} / {{ totalPages }}</span>
-          <button type="button" class="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50" :disabled="filters.page >= totalPages" @click="nextPage">ถัดไป</button>
+          <button type="button" class="ns-admin-btn ns-admin-btn-secondary text-xs disabled:opacity-50" :disabled="filters.page <= 1" @click="prevPage">ก่อนหน้า</button>
+          <span class="text-xs text-slate-600">หน้า {{ meta.page }} / {{ totalPages }}</span>
+          <button type="button" class="ns-admin-btn ns-admin-btn-secondary text-xs disabled:opacity-50" :disabled="filters.page >= totalPages" @click="nextPage">ถัดไป</button>
         </div>
       </div>
     </div>
@@ -582,8 +591,8 @@ onMounted(async () => {
 
       <template #actions>
         <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn rounded-xl bg-white border-neutral-300 text-neutral-700" @click="createModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn rounded-xl bg-[#166534] hover:bg-[#14532d] text-white border-none" :disabled="saving" @click="submitCreate">
+          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="createModalRef?.close()">ยกเลิก</button>
+          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="saving" @click="submitCreate">
             {{ saving ? 'กำลังบันทึก...' : 'บันทึกสินค้า' }}
           </button>
         </div>
@@ -644,8 +653,8 @@ onMounted(async () => {
 
       <template #actions>
         <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn rounded-xl bg-white border-neutral-300 text-neutral-700" @click="editModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn rounded-xl bg-[#166534] hover:bg-[#14532d] text-white border-none" :disabled="savingEdit" @click="submitEdit">
+          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="editModalRef?.close()">ยกเลิก</button>
+          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="savingEdit" @click="submitEdit">
             {{ savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
           </button>
         </div>
@@ -660,7 +669,7 @@ onMounted(async () => {
 
       <template #actions>
         <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn rounded-xl bg-white border-neutral-300 text-neutral-700" @click="deleteModalRef?.close()">ยกเลิก</button>
+          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
           <button type="button" class="btn rounded-xl bg-red-600 hover:bg-red-700 text-white border-none" :disabled="deleting" @click="submitDelete">
             {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
           </button>

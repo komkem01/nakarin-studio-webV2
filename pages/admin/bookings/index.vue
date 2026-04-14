@@ -39,6 +39,13 @@ const statusOptions: { value: BookingStatus | ''; label: string }[] = [
   { value: 'canceled', label: 'ยกเลิก' },
 ]
 
+const statusFilterOptions = computed(() => statusOptions.map(opt => ({ label: opt.label, value: String(opt.value) })))
+const paymentFilterOptions = [
+  { label: 'ทุกการชำระ', value: '' },
+  { label: 'มัดจำ', value: 'deposit' },
+  { label: 'ชำระครบ', value: 'paid' },
+]
+
 const statusConfig: Record<string, { label: string; cls: string }> = {
   draft:         { label: 'แบบร่าง',         cls: 'bg-neutral-100 text-neutral-600' },
   confirmed:     { label: 'ยืนยันแล้ว',       cls: 'bg-blue-100 text-blue-700' },
@@ -110,46 +117,46 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-lg font-bold text-neutral-900">จัดการออเดอร์</h1>
-        <p class="text-sm text-neutral-500 mt-0.5">ออเดอร์ทั้งหมด {{ meta.total }} รายการ</p>
+  <section class="space-y-5">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-700/40 bg-[radial-gradient(circle_at_14%_20%,rgba(255,255,255,.17),transparent_34%),linear-gradient(132deg,#0f172a_0%,#3f1f2f_46%,#2d1020_100%)] px-6 py-6 text-white shadow-[0_18px_45px_-30px_rgba(2,6,23,.95)]">
+      <div class="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-pink-300/10 blur-2xl" />
+      <div class="pointer-events-none absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-rose-200/10 blur-2xl" />
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.22em] text-slate-200/90 font-semibold">Order Control</p>
+          <h1 class="mt-2 text-2xl font-bold text-white leading-tight md:text-[30px]">จัดการออเดอร์</h1>
+          <p class="mt-2 text-sm text-slate-200/90">ตรวจสอบสถานะงาน กรองรายการ และจัดการออเดอร์จากศูนย์กลาง</p>
+        </div>
+        <span class="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+          ทั้งหมด {{ meta.total }} รายการ
+        </span>
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-xl border border-neutral-200 p-4">
+    <div class="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_20px_50px_-40px_rgba(15,23,42,.45)] backdrop-blur-sm md:p-5">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <input
           v-model="filters.q"
           type="text"
           placeholder="ค้นหาเลขออเดอร์..."
-          class="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30 md:col-span-2"
+          class="ns-admin-input h-10 md:col-span-2"
           @keyup.enter="onSearch"
         />
-        <select
-          v-model="filters.status"
-          class="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
-          @change="onSearch"
-        >
-          <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-        </select>
-        <select
-          v-model="filters.payment"
-          class="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
-          @change="onSearch"
-        >
-          <option value="">ทุกการชำระ</option>
-          <option value="deposit">มัดจำ</option>
-          <option value="paid">ชำระครบ</option>
-        </select>
+        <BaseSelectDropdown v-model="filters.status" :options="statusFilterOptions" button-class="border-slate-300" />
+        <BaseSelectDropdown v-model="filters.payment" :options="paymentFilterOptions" button-class="border-slate-300" />
+      </div>
+      <div class="mt-3 flex justify-end">
+        <button type="button" class="ns-admin-btn ns-admin-btn-secondary" @click="onSearch">
+          ค้นหา
+        </button>
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-rose-50/50 px-4 py-3">
+        <p class="text-sm font-semibold text-slate-800">รายการออเดอร์</p>
+        <p class="text-xs text-slate-500">หน้า {{ meta.page }} / {{ meta.totalPages || 1 }}</p>
+      </div>
       <div v-if="loading" class="flex items-center justify-center py-20">
         <span class="loading loading-spinner loading-md text-[#16a34a]" />
       </div>
@@ -157,27 +164,27 @@ onMounted(load)
         <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <p class="text-sm text-neutral-400">ไม่พบออเดอร์</p>
+        <p class="text-sm text-slate-400">ไม่พบออเดอร์</p>
       </div>
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-neutral-50 border-b border-neutral-200">
+          <thead class="border-b border-slate-200 bg-slate-50/90">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">เลขออเดอร์</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">สถานะ</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">การชำระ</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">แพคเกจ</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">วันงาน</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wide">ยอดรวม</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wide">คงเหลือ</th>
-              <th class="px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wide w-24">จัดการ</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">เลขออเดอร์</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">สถานะ</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">การชำระ</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">แพคเกจ</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">วันงาน</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">ยอดรวม</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">คงเหลือ</th>
+              <th class="w-24 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">จัดการ</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-neutral-100">
+          <tbody class="divide-y divide-slate-100">
             <tr
               v-for="order in orders"
               :key="order.id"
-              class="hover:bg-neutral-50 transition-colors"
+              class="transition-colors hover:bg-slate-50/70"
             >
               <td class="px-4 py-3">
                 <NuxtLink
@@ -203,9 +210,9 @@ onMounted(load)
                   {{ paymentConfig[order.payment]?.label ?? order.payment }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-neutral-700 max-w-[160px] truncate">{{ order.packageName ?? '-' }}</td>
-              <td class="px-4 py-3 text-neutral-600 whitespace-nowrap">{{ formatDate(order.eventDate) }}</td>
-              <td class="px-4 py-3 text-right font-medium text-neutral-900">฿{{ formatPrice(order.totalPrice) }}</td>
+              <td class="max-w-[160px] truncate px-4 py-3 text-slate-700">{{ order.packageName ?? '-' }}</td>
+              <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ formatDate(order.eventDate) }}</td>
+              <td class="px-4 py-3 text-right font-medium text-slate-900">฿{{ formatPrice(order.totalPrice) }}</td>
               <td class="px-4 py-3 text-right" :class="order.balanceAmount > 0 ? 'text-red-600 font-semibold' : 'text-emerald-600 font-medium'">
                 ฿{{ formatPrice(order.balanceAmount) }}
               </td>
@@ -213,7 +220,7 @@ onMounted(load)
                 <div class="flex justify-end gap-2">
                   <NuxtLink
                     :to="`/admin/bookings/${order.id}`"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-300 bg-white text-neutral-600 hover:border-[#bbf7d0] hover:bg-[#f0fdf4] hover:text-[#166534]"
+                    class="ns-admin-icon-btn"
                     title="ดูรายละเอียด"
                   >
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -223,7 +230,7 @@ onMounted(load)
                   </NuxtLink>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
                     title="ลบออเดอร์"
                     @click="openDelete(order.id)"
                   >
@@ -241,9 +248,8 @@ onMounted(load)
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div v-if="!loading && meta.totalPages > 1" class="border-t border-neutral-100 px-4 py-3 flex items-center justify-between">
-        <p class="text-xs text-neutral-500">
+      <div v-if="!loading && meta.totalPages > 1" class="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+        <p class="text-xs text-slate-500">
           หน้า {{ meta.page }} / {{ meta.totalPages }} ({{ meta.total }} รายการ)
         </p>
         <BasePagination :current="meta.page" :total="meta.totalPages" @change="onPageChange" />
@@ -258,12 +264,12 @@ onMounted(load)
       </div>
       <template #actions>
         <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn rounded-xl bg-white border-neutral-300 text-neutral-700" @click="deleteModalRef?.close()">ยกเลิก</button>
+          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
           <button type="button" class="btn rounded-xl bg-red-600 hover:bg-red-700 text-white border-none" :disabled="deleting" @click="confirmDelete">
             {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
           </button>
         </div>
       </template>
     </BaseModal>
-  </div>
+  </section>
 </template>

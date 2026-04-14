@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import 'cally'
+onMounted(async () => {
+  if (import.meta.client) {
+    await import('cally')
+  }
+})
 
 const props = withDefaults(defineProps<{
   modelValue: string | null   // YYYY-MM-DD for date-only, ISO string for datetime

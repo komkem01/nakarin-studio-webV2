@@ -505,7 +505,7 @@ onMounted(async () => {
         <div class="flex gap-2">
           <template v-if="!editMode">
             <button
-              class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-3 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors"
+              class="ns-admin-btn ns-admin-btn-primary"
               @click="editMode = true"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
@@ -516,13 +516,13 @@ onMounted(async () => {
           </template>
           <template v-else>
             <button
-              class="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+              class="ns-admin-btn ns-admin-btn-secondary"
               @click="cancelEdit"
             >
               ยกเลิก
             </button>
             <button
-              class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-3 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+              class="ns-admin-btn ns-admin-btn-primary disabled:opacity-60"
               :disabled="saving"
               @click="save"
             >
@@ -610,7 +610,7 @@ onMounted(async () => {
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">เลขออเดอร์ *</label>
-                <input v-model="form.bookingNo" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+                <input v-model="form.bookingNo" type="text" class="ns-admin-input" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">สถานะ</label>
@@ -622,31 +622,31 @@ onMounted(async () => {
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">แพคเกจ</label>
-                <input v-model="form.packageName" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" placeholder="-" />
+                <input v-model="form.packageName" type="text" class="ns-admin-input" placeholder="-" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">สไตล์บายศรี</label>
-                <input v-model="form.baiseeStyle" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" placeholder="-" />
+                <input v-model="form.baiseeStyle" type="text" class="ns-admin-input" placeholder="-" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">ชื่อผู้รับ</label>
-                <input v-model="form.recipientName" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" placeholder="-" />
+                <input v-model="form.recipientName" type="text" class="ns-admin-input" placeholder="-" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">เบอร์ผู้รับ</label>
-                <input v-model="form.recipientPhone" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" placeholder="-" />
+                <input v-model="form.recipientPhone" type="text" class="ns-admin-input" placeholder="-" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">บ้านเลขที่/ห้อง</label>
-                <input v-model="form.deliveryNo" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" placeholder="-" />
+                <input v-model="form.deliveryNo" type="text" class="ns-admin-input" placeholder="-" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">หมู่บ้าน/อาคาร</label>
-                <input v-model="form.deliveryVillage" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" placeholder="-" />
+                <input v-model="form.deliveryVillage" type="text" class="ns-admin-input" placeholder="-" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">ถนน/ซอย</label>
-                <input v-model="form.deliveryStreet" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" placeholder="-" />
+                <input v-model="form.deliveryStreet" type="text" class="ns-admin-input" placeholder="-" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">จังหวัด</label>
@@ -750,19 +750,19 @@ onMounted(async () => {
             <div v-else class="space-y-3 text-sm">
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">ราคาพื้นฐาน (฿)</label>
-                <input v-model="form.basePrice" type="number" min="0" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+                <input v-model="form.basePrice" type="number" min="0" class="ns-admin-input" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">ราคาเพิ่มเติม (฿)</label>
-                <input v-model="form.addonPrice" type="number" min="0" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+                <input v-model="form.addonPrice" type="number" min="0" class="ns-admin-input" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">มัดจำ (฿)</label>
-                <input v-model="form.depositAmount" type="number" min="0" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+                <input v-model="form.depositAmount" type="number" min="0" class="ns-admin-input" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">ชำระแล้ว (฿)</label>
-                <input v-model="form.paidAmount" type="number" min="0" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+                <input v-model="form.paidAmount" type="number" min="0" class="ns-admin-input" />
               </div>
               <div class="rounded-lg bg-neutral-50 px-3 py-2.5 text-xs text-neutral-500">
                 ยอดรวม = ราคาพื้นฐาน + ราคาเพิ่มเติม<br />
@@ -798,7 +798,7 @@ onMounted(async () => {
                 type="text"
                 placeholder="พิมพ์หรือเลือกสินค้า..."
                 autocomplete="off"
-                class="w-full h-9 rounded-lg border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                class="ns-admin-input"
                 @input="onProductSearchInput"
                 @focus="showProductDropdown = true"
               />
@@ -821,28 +821,28 @@ onMounted(async () => {
             </div>
             <div>
               <label class="block text-xs text-neutral-500 mb-1">ตัวเลือก</label>
-              <input v-model="detailForm.option" type="text" placeholder="-" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+              <input v-model="detailForm.option" type="text" placeholder="-" class="ns-admin-input" />
             </div>
             <div>
               <label class="block text-xs text-neutral-500 mb-1">วัสดุ</label>
-              <input v-model="detailForm.material" type="text" placeholder="-" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+              <input v-model="detailForm.material" type="text" placeholder="-" class="ns-admin-input" />
             </div>
             <div>
               <label class="block text-xs text-neutral-500 mb-1">จำนวน *</label>
-              <input v-model="detailForm.quantity" type="number" min="1" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+              <input v-model="detailForm.quantity" type="number" min="1" class="ns-admin-input" />
             </div>
             <div>
               <label class="block text-xs text-neutral-500 mb-1">ราคา/ชิ้น (฿) *</label>
-              <input v-model="detailForm.unitPrice" type="number" min="0" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+              <input v-model="detailForm.unitPrice" type="number" min="0" class="ns-admin-input" />
             </div>
             <div class="col-span-2">
               <label class="block text-xs text-neutral-500 mb-1">หมายเหตุ</label>
-              <input v-model="detailForm.note" type="text" placeholder="-" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+              <input v-model="detailForm.note" type="text" placeholder="-" class="ns-admin-input" />
             </div>
           </div>
           <div class="flex gap-2 mt-3">
             <button
-              class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-3 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+              class="ns-admin-btn ns-admin-btn-primary disabled:opacity-60"
               :disabled="savingDetail"
               @click="saveDetail(false)"
             >
@@ -851,7 +851,7 @@ onMounted(async () => {
             </button>
             <button
               v-if="!editingDetailId"
-              class="inline-flex items-center gap-1.5 rounded-lg border border-[#15803d] text-[#15803d] px-3 py-2 text-sm font-medium hover:bg-[#f0fdf4] transition-colors disabled:opacity-60"
+              class="ns-admin-btn ns-admin-btn-secondary disabled:opacity-60"
               :disabled="savingDetail"
               @click="saveDetail(true)"
             >
@@ -859,7 +859,7 @@ onMounted(async () => {
               + เพิ่มอีกรายการ
             </button>
             <button
-              class="inline-flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
+              class="ns-admin-btn ns-admin-btn-secondary"
               @click="showDetailForm = false"
             >
               ยกเลิก
@@ -1028,13 +1028,13 @@ onMounted(async () => {
                     v-model="paymentVerifyForm.paidAmount"
                     type="number"
                     min="0"
-                    class="w-full h-9 rounded-lg border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                    class="ns-admin-input"
                   />
                 </div>
               </div>
               <div class="flex gap-2 mt-3">
                 <button
-                  class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-3 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+                  class="ns-admin-btn ns-admin-btn-primary disabled:opacity-60"
                   :disabled="verifyingAttachmId === a.id"
                   @click="submitPaymentVerify(a.id)"
                 >
@@ -1045,7 +1045,7 @@ onMounted(async () => {
                   ยืนยันการชำระเงิน
                 </button>
                 <button
-                  class="inline-flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 transition-colors"
+                  class="ns-admin-btn ns-admin-btn-secondary"
                   @click="paymentVerifyId = null"
                 >
                   ยกเลิก
@@ -1091,11 +1091,11 @@ onMounted(async () => {
               v-model="msgInput"
               type="text"
               placeholder="พิมพ์ข้อความ..."
-              class="flex-1 h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+              class="ns-admin-input flex-1 bg-slate-50"
               @keyup.enter="sendMessage"
             />
             <button
-              class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-4 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+              class="ns-admin-btn ns-admin-btn-primary disabled:opacity-60"
               :disabled="sendingMsg || !msgInput.trim()"
               @click="sendMessage"
             >

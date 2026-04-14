@@ -172,15 +172,25 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-lg font-bold text-neutral-900">จัดการแอดมิน</h1>
-        <p class="text-sm text-neutral-500 mt-0.5">แอดมินทั้งหมด {{ admins.length }} คน</p>
+  <section class="space-y-5">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-700/40 bg-[radial-gradient(circle_at_14%_20%,rgba(255,255,255,.17),transparent_34%),linear-gradient(132deg,#0f172a_0%,#4c1d95_46%,#2e1065_100%)] px-6 py-6 text-white shadow-[0_18px_45px_-30px_rgba(2,6,23,.95)]">
+      <div class="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-violet-300/10 blur-2xl" />
+      <div class="pointer-events-none absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-purple-200/10 blur-2xl" />
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.22em] text-slate-200/90 font-semibold">Admin Directory</p>
+          <h1 class="mt-2 text-2xl font-bold text-white leading-tight md:text-[30px]">จัดการแอดมิน</h1>
+          <p class="mt-2 text-sm text-slate-200/90">บริหารสิทธิ์ผู้ดูแลระบบและข้อมูลบัญชีแอดมิน</p>
+        </div>
+        <span class="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+          แอดมินทั้งหมด {{ admins.length }} คน
+        </span>
       </div>
+    </div>
+
+    <div class="flex items-center justify-end">
       <button
-        class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-4 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors"
+        class="ns-admin-btn ns-admin-btn-primary"
         @click="openCreate"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
@@ -190,23 +200,25 @@ onMounted(load)
       </button>
     </div>
 
-    <!-- Search -->
-    <div class="bg-white rounded-xl border border-neutral-200 p-4">
+    <div class="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_20px_50px_-40px_rgba(15,23,42,.45)] backdrop-blur-sm md:p-5">
       <div class="relative max-w-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="absolute left-3 top-2.5 w-4 h-4 text-neutral-400 pointer-events-none">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400">
           <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
         </svg>
         <input
           v-model="searchQ"
           type="text"
           placeholder="ค้นหาชื่อ หรือ เบอร์โทร..."
-          class="w-full h-9 pl-9 pr-3 rounded-lg border border-neutral-200 bg-neutral-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+          class="ns-admin-input h-10 pl-9 pr-3"
         />
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-violet-50/40 px-4 py-3">
+        <p class="text-sm font-semibold text-slate-800">รายการแอดมิน</p>
+        <p class="text-xs text-slate-500">ทั้งหมด {{ filteredAdmins.length }} รายการ</p>
+      </div>
       <div v-if="loading" class="flex items-center justify-center py-20">
         <span class="loading loading-spinner loading-md text-[#16a34a]" />
       </div>
@@ -214,28 +226,28 @@ onMounted(load)
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 text-neutral-200">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
         </svg>
-        <p class="text-sm text-neutral-400">ไม่พบแอดมิน</p>
+        <p class="text-sm text-slate-400">ไม่พบแอดมิน</p>
       </div>
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-neutral-50 border-b border-neutral-200">
+          <thead class="border-b border-slate-200 bg-slate-50/90">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">ชื่อ-นามสกุล</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">เบอร์โทร</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">ล็อกอินล่าสุด</th>
-              <th class="px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wide w-20">จัดการ</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">ชื่อ-นามสกุล</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">เบอร์โทร</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">ล็อกอินล่าสุด</th>
+              <th class="w-20 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">จัดการ</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-neutral-100">
-            <tr v-for="m in filteredAdmins" :key="m.id" class="hover:bg-neutral-50 transition-colors">
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="m in filteredAdmins" :key="m.id" class="transition-colors hover:bg-slate-50/70">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm shrink-0">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700">
                     {{ m.firstName.charAt(0) }}
                   </div>
                   <div>
-                    <p class="font-medium text-neutral-900">{{ m.firstName }} {{ m.lastName }}</p>
-                    <p class="text-xs text-neutral-400 font-mono">{{ m.id.slice(0, 8) }}…</p>
+                    <p class="font-medium text-slate-900">{{ m.firstName }} {{ m.lastName }}</p>
+                    <p class="font-mono text-xs text-slate-400">{{ m.id.slice(0, 8) }}…</p>
                   </div>
                 </div>
               </td>
@@ -243,13 +255,13 @@ onMounted(load)
                 <span v-if="accountByMemberId[m.id]" class="font-mono text-neutral-800">
                   {{ accountByMemberId[m.id].phone }}
                 </span>
-                <span v-else class="text-neutral-400 text-xs">-</span>
+                <span v-else class="text-xs text-slate-400">-</span>
               </td>
-              <td class="px-4 py-3 text-neutral-500 text-xs">{{ formatDate(m.lastLogin) }}</td>
+              <td class="px-4 py-3 text-xs text-slate-500">{{ formatDate(m.lastLogin) }}</td>
               <td class="px-4 py-3">
                 <div class="flex items-center justify-center gap-1">
                   <button
-                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-neutral-300 bg-white hover:border-[#bbf7d0] hover:bg-[#f0fdf4] hover:text-[#166534] transition-colors"
+                    class="ns-admin-icon-btn h-7 w-7"
                     title="แก้ไข"
                     @click="openEdit(m)"
                   >
@@ -258,7 +270,7 @@ onMounted(load)
                     </svg>
                   </button>
                   <button
-                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                    class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition-colors hover:bg-red-100"
                     title="ลบ"
                     @click="openDelete(m)"
                   >
@@ -279,11 +291,11 @@ onMounted(load)
       <div class="grid grid-cols-2 gap-4 text-sm">
         <div>
           <label class="block text-xs text-neutral-500 mb-1">ชื่อ *</label>
-          <input v-model="createForm.firstName" type="text" placeholder="ชื่อ" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="createForm.firstName" type="text" placeholder="ชื่อ" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">นามสกุล *</label>
-          <input v-model="createForm.lastName" type="text" placeholder="นามสกุล" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="createForm.lastName" type="text" placeholder="นามสกุล" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">เพศ</label>
@@ -303,18 +315,18 @@ onMounted(load)
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">เบอร์โทรศัพท์ *</label>
-          <input v-model="createForm.phone" type="tel" placeholder="0812345678" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="createForm.phone" type="tel" placeholder="0812345678" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">รหัสผ่าน *</label>
-          <input v-model="createForm.password" type="password" placeholder="••••••••" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="createForm.password" type="password" placeholder="••••••••" class="ns-admin-input" />
         </div>
       </div>
       <template #actions>
         <div class="flex justify-end gap-2">
-          <button class="rounded-lg border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors" @click="createModalRef?.close()">ยกเลิก</button>
+          <button class="ns-admin-btn ns-admin-btn-secondary" @click="createModalRef?.close()">ยกเลิก</button>
           <button
-            class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-4 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+            class="ns-admin-btn ns-admin-btn-primary disabled:opacity-60"
             :disabled="creating"
             @click="submitCreate"
           >
@@ -330,11 +342,11 @@ onMounted(load)
       <div class="grid grid-cols-2 gap-4 text-sm">
         <div>
           <label class="block text-xs text-neutral-500 mb-1">ชื่อ *</label>
-          <input v-model="editForm.firstName" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="editForm.firstName" type="text" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">นามสกุล *</label>
-          <input v-model="editForm.lastName" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="editForm.lastName" type="text" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">เพศ</label>
@@ -355,9 +367,9 @@ onMounted(load)
       </div>
       <template #actions>
         <div class="flex justify-end gap-2">
-          <button class="rounded-lg border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors" @click="editModalRef?.close()">ยกเลิก</button>
+          <button class="ns-admin-btn ns-admin-btn-secondary" @click="editModalRef?.close()">ยกเลิก</button>
           <button
-            class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-4 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+            class="ns-admin-btn ns-admin-btn-primary disabled:opacity-60"
             :disabled="saving"
             @click="submitEdit"
           >
@@ -378,7 +390,7 @@ onMounted(load)
       </p>
       <template #actions>
         <div class="flex justify-end gap-2">
-          <button class="rounded-lg border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors" @click="deleteModalRef?.close()">ยกเลิก</button>
+          <button class="ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
           <button
             class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-60"
             :disabled="confirmingDelete"
@@ -390,5 +402,5 @@ onMounted(load)
         </div>
       </template>
     </BaseModal>
-  </div>
+  </section>
 </template>

@@ -110,22 +110,28 @@ onMounted(fetchBookings)
 </script>
 
 <template>
-  <div class="flex flex-col h-[calc(100vh-7rem)] gap-0">
-    <!-- Header -->
-    <div class="mb-3 flex items-center justify-between shrink-0">
-      <div>
-        <h1 class="text-lg font-bold text-neutral-900">ข้อความ</h1>
-        <p class="text-sm text-neutral-500 mt-0.5">บันทึกและข้อความต่อออเดอร์ทั้งหมด</p>
+  <section class="space-y-5">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-700/40 bg-[radial-gradient(circle_at_14%_20%,rgba(255,255,255,.17),transparent_34%),linear-gradient(132deg,#0f172a_0%,#3d1f4a_46%,#1f1230_100%)] px-6 py-6 text-white shadow-[0_18px_45px_-30px_rgba(2,6,23,.95)]">
+      <div class="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-fuchsia-300/10 blur-2xl" />
+      <div class="pointer-events-none absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-violet-200/10 blur-2xl" />
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.22em] text-slate-200/90 font-semibold">Message Center</p>
+          <h1 class="mt-2 text-2xl font-bold text-white leading-tight md:text-[30px]">จัดการข้อความ</h1>
+          <p class="mt-2 text-sm text-slate-200/90">ติดตามและโต้ตอบข้อความของลูกค้าในแต่ละออเดอร์แบบรวมศูนย์</p>
+        </div>
+        <span class="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+          ออเดอร์ทั้งหมด {{ total }} รายการ
+        </span>
       </div>
     </div>
 
-    <!-- Split panel -->
-    <div class="flex-1 flex gap-4 min-h-0">
+    <div class="flex h-[calc(100vh-16rem)] min-h-[560px] gap-4">
 
       <!-- Left: Booking list -->
-      <div class="w-72 shrink-0 flex flex-col bg-white rounded-xl border border-neutral-200 overflow-hidden">
+      <div class="w-80 shrink-0 flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
         <!-- Search -->
-        <div class="p-3 border-b border-neutral-100 shrink-0">
+        <div class="shrink-0 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-violet-50/40 p-3">
           <div class="relative">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="absolute left-2.5 top-2 w-4 h-4 text-neutral-400 pointer-events-none">
               <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
@@ -134,30 +140,30 @@ onMounted(fetchBookings)
               v-model="searchQ"
               type="text"
               placeholder="ค้นหาออเดอร์..."
-              class="w-full h-8 pl-8 pr-3 rounded-lg border border-neutral-200 bg-neutral-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+              class="ns-admin-input h-9 pl-8 pr-3"
               @input="onSearch"
             />
           </div>
         </div>
 
         <!-- List -->
-        <div class="flex-1 overflow-y-auto divide-y divide-neutral-50">
+        <div class="flex-1 divide-y divide-slate-50 overflow-y-auto">
           <div v-if="loadingBookings" class="flex items-center justify-center py-16">
             <span class="loading loading-spinner loading-sm text-[#16a34a]" />
           </div>
           <div v-else-if="bookings.length === 0" class="flex items-center justify-center py-16">
-            <p class="text-sm text-neutral-400">ไม่พบออเดอร์</p>
+            <p class="text-sm text-slate-400">ไม่พบออเดอร์</p>
           </div>
           <button
             v-for="b in bookings"
             v-else
             :key="b.id"
-            class="w-full text-left px-4 py-3 hover:bg-neutral-50 transition-colors"
-            :class="selectedBooking?.id === b.id ? 'bg-green-50 border-l-2 border-[#15803d]' : 'border-l-2 border-transparent'"
+            class="w-full border-l-2 px-4 py-3 text-left transition-colors hover:bg-slate-50/70"
+            :class="selectedBooking?.id === b.id ? 'border-violet-500 bg-violet-50/60' : 'border-transparent'"
             @click="selectBooking(b)"
           >
             <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="font-mono text-sm font-semibold text-neutral-900 truncate">{{ b.bookingNo }}</span>
+              <span class="truncate font-mono text-sm font-semibold text-slate-900">{{ b.bookingNo }}</span>
               <span
                 class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0"
                 :class="statusConfig[b.status]?.cls ?? 'bg-neutral-100 text-neutral-600'"
@@ -165,20 +171,20 @@ onMounted(fetchBookings)
                 {{ statusConfig[b.status]?.label ?? b.status }}
               </span>
             </div>
-            <p class="text-xs text-neutral-400 truncate">{{ b.recipientName ?? b.packageName ?? '-' }}</p>
+            <p class="truncate text-xs text-slate-400">{{ b.recipientName ?? b.packageName ?? '-' }}</p>
           </button>
         </div>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="flex items-center justify-between px-3 py-2 border-t border-neutral-100 shrink-0">
+        <div v-if="totalPages > 1" class="shrink-0 flex items-center justify-between border-t border-slate-200 px-3 py-2">
           <button
-            class="text-xs text-neutral-500 hover:text-neutral-800 disabled:opacity-40"
+            class="text-xs text-slate-500 transition hover:text-slate-800 disabled:opacity-40"
             :disabled="page <= 1"
             @click="page--; fetchBookings()"
           >← ก่อนหน้า</button>
-          <span class="text-xs text-neutral-400">{{ page }}/{{ totalPages }}</span>
+          <span class="text-xs text-slate-400">{{ page }}/{{ totalPages }}</span>
           <button
-            class="text-xs text-neutral-500 hover:text-neutral-800 disabled:opacity-40"
+            class="text-xs text-slate-500 transition hover:text-slate-800 disabled:opacity-40"
             :disabled="page >= totalPages"
             @click="page++; fetchBookings()"
           >ถัดไป →</button>
@@ -186,10 +192,10 @@ onMounted(fetchBookings)
       </div>
 
       <!-- Right: Thread -->
-      <div class="flex-1 flex flex-col bg-white rounded-xl border border-neutral-200 overflow-hidden min-w-0">
+      <div class="min-w-0 flex-1 flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
 
         <!-- Empty state -->
-        <div v-if="!selectedBooking" class="flex flex-col items-center justify-center flex-1 gap-3 text-neutral-400">
+        <div v-if="!selectedBooking" class="flex flex-1 flex-col items-center justify-center gap-3 text-slate-400">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 text-neutral-200">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
           </svg>
@@ -198,16 +204,16 @@ onMounted(fetchBookings)
 
         <template v-else>
           <!-- Thread header -->
-          <div class="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100 shrink-0">
+          <div class="shrink-0 flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-slate-50 to-violet-50/40 px-5 py-3.5">
             <div class="flex items-center gap-2.5 min-w-0">
-              <span class="font-mono font-bold text-neutral-900">{{ selectedBooking.bookingNo }}</span>
+              <span class="font-mono font-bold text-slate-900">{{ selectedBooking.bookingNo }}</span>
               <span
                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0"
                 :class="statusConfig[selectedBooking.status]?.cls ?? 'bg-neutral-100 text-neutral-600'"
               >
                 {{ statusConfig[selectedBooking.status]?.label ?? selectedBooking.status }}
               </span>
-              <span v-if="selectedBooking.recipientName" class="text-sm text-neutral-500 truncate">· {{ selectedBooking.recipientName }}</span>
+              <span v-if="selectedBooking.recipientName" class="truncate text-sm text-slate-500">· {{ selectedBooking.recipientName }}</span>
             </div>
             <NuxtLink
               :to="`/admin/bookings/${selectedBooking.id}`"
@@ -222,11 +228,11 @@ onMounted(fetchBookings)
           </div>
 
           <!-- Messages -->
-          <div ref="threadEl" class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          <div ref="threadEl" class="flex-1 space-y-3 overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#fbfbff_100%)] px-5 py-4">
             <div v-if="loadingMessages" class="flex items-center justify-center py-12">
               <span class="loading loading-spinner loading-sm text-[#16a34a]" />
             </div>
-            <div v-else-if="messages.length === 0" class="flex flex-col items-center justify-center py-12 gap-2 text-neutral-400">
+            <div v-else-if="messages.length === 0" class="flex flex-col items-center justify-center gap-2 py-12 text-slate-400">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-neutral-200">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
               </svg>
@@ -257,24 +263,24 @@ onMounted(fetchBookings)
                         : 'bg-neutral-100 text-neutral-800 rounded-tl-sm'
                     "
                   >{{ m.message }}</div>
-                  <span class="text-[10px] text-neutral-400 mt-0.5 px-1">{{ formatDateTime(m.createdAt) }}</span>
+                  <span class="mt-0.5 px-1 text-[10px] text-slate-400">{{ formatDateTime(m.createdAt) }}</span>
                 </div>
               </div>
             </template>
           </div>
 
           <!-- Reply input -->
-          <div class="px-4 py-3 border-t border-neutral-100 shrink-0">
+          <div class="shrink-0 border-t border-slate-200 px-4 py-3">
             <div class="flex gap-2">
               <textarea
                 v-model="msgInput"
                 rows="2"
                 placeholder="พิมพ์ข้อความ..."
-                class="flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                class="ns-admin-textarea flex-1 resize-none"
                 @keydown.enter.exact.prevent="sendMessage"
               />
               <button
-                class="self-end inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#15803d] text-white hover:bg-[#166534] transition-colors disabled:opacity-50 shrink-0"
+                class="self-end ns-admin-btn ns-admin-btn-primary h-9 w-9 shrink-0 !px-0 disabled:opacity-50"
                 :disabled="sending || !msgInput.trim()"
                 @click="sendMessage"
               >
@@ -284,11 +290,11 @@ onMounted(fetchBookings)
                 </svg>
               </button>
             </div>
-            <p class="text-[10px] text-neutral-400 mt-1.5">Enter เพื่อส่ง</p>
+            <p class="mt-1.5 text-[10px] text-slate-400">Enter เพื่อส่ง</p>
           </div>
         </template>
       </div>
 
     </div>
-  </div>
+  </section>
 </template>

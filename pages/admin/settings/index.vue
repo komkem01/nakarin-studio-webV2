@@ -21,6 +21,43 @@ type OverviewData = {
 const overview = ref<OverviewData>({})
 const loadingOverview = ref(true)
 
+type CapacitySettingsData = {
+  dailySchedule?: number
+  monthlyEventDefault?: number
+  monthlyByPackage?: string
+  monthlyByWorkType?: string
+  updatedAt?: string
+  daily_schedule?: number
+  monthly_event_default?: number
+  monthly_by_package?: string
+  monthly_by_work_type?: string
+  updated_at?: string
+}
+
+const loadingCapacitySettings = ref(true)
+const savingCapacitySettings = ref(false)
+const capacitySettingsError = ref('')
+const capacitySettingsUpdatedAt = ref('')
+
+const capacityForm = reactive({
+  dailySchedule: 20,
+  monthlyEventDefault: 300,
+  monthlyByPackage: '',
+  monthlyByWorkType: '',
+})
+
+const asRecord = (value: unknown) => (value && typeof value === 'object' ? value as Record<string, unknown> : {})
+const pickNumber = (source: unknown, camel: string, snake: string, fallback: number) => {
+  const data = asRecord(source)
+  const value = Number(data[camel] ?? data[snake])
+  return Number.isFinite(value) && value > 0 ? value : fallback
+}
+const pickString = (source: unknown, camel: string, snake: string) => {
+  const data = asRecord(source)
+  const value = data[camel] ?? data[snake]
+  return typeof value === 'string' ? value : ''
+}
+
 const loadOverview = async () => {
   loadingOverview.value = true
   try {
@@ -33,10 +70,70 @@ const loadOverview = async () => {
   }
 }
 
+const loadCapacitySettings = async () => {
+  loadingCapacitySettings.value = true
+  capacitySettingsError.value = ''
+  try {
+    const res = await authFetch<ApiEnv<CapacitySettingsData>>('/api/v1/reports/bookings/monthly-capacity/settings')
+    const data = res?.data || {}
+    capacityForm.dailySchedule = pickNumber(data, 'dailySchedule', 'daily_schedule', 20)
+    capacityForm.monthlyEventDefault = pickNumber(data, 'monthlyEventDefault', 'monthly_event_default', 300)
+    capacityForm.monthlyByPackage = pickString(data, 'monthlyByPackage', 'monthly_by_package')
+    capacityForm.monthlyByWorkType = pickString(data, 'monthlyByWorkType', 'monthly_by_work_type')
+    capacitySettingsUpdatedAt.value = pickString(data, 'updatedAt', 'updated_at')
+  } catch (error) {
+    const e = error as { statusCode?: number; response?: { status?: number } }
+    const status = e?.statusCode || e?.response?.status
+    if (status === 401) {
+      await clearSession()
+      return
+    }
+    capacitySettingsError.value = 'ไม่สามารถโหลดค่าโควต้าปัจจุบันได้'
+  } finally {
+    loadingCapacitySettings.value = false
+  }
+}
+
+const saveCapacitySettings = async () => {
+  if (capacityForm.dailySchedule <= 0 || capacityForm.monthlyEventDefault <= 0) {
+    toast.warning('ค่าโควต้าต้องมากกว่า 0')
+    return
+  }
+
+  savingCapacitySettings.value = true
+  capacitySettingsError.value = ''
+  try {
+    const res = await authFetch<ApiEnv<CapacitySettingsData>>('/api/v1/reports/bookings/monthly-capacity/settings', {
+      method: 'PUT',
+      body: {
+        dailySchedule: Number(capacityForm.dailySchedule),
+        monthlyEventDefault: Number(capacityForm.monthlyEventDefault),
+        monthlyByPackage: String(capacityForm.monthlyByPackage || ''),
+        monthlyByWorkType: String(capacityForm.monthlyByWorkType || ''),
+      },
+    })
+    const data = res?.data || {}
+    capacitySettingsUpdatedAt.value = pickString(data, 'updatedAt', 'updated_at')
+    toast.success('บันทึกค่าโควต้าเรียบร้อย')
+  } catch (error) {
+    const e = error as { statusCode?: number; response?: { status?: number } }
+    const status = e?.statusCode || e?.response?.status
+    if (status === 401) {
+      await clearSession()
+      return
+    }
+    toast.error('บันทึกค่าโควต้าไม่สำเร็จ')
+  } finally {
+    savingCapacitySettings.value = false
+  }
+}
+
 const formatDate = (s: string | undefined) =>
   s ? new Date(s).toLocaleString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'
 
-onMounted(loadOverview)
+onMounted(async () => {
+  await Promise.all([loadOverview(), loadCapacitySettings()])
+})
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
 
@@ -68,14 +165,17 @@ const sessionInfo = computed<StoredSession>(() => {
 </script>
 
 <template>
-  <div class="space-y-5">
-    <div>
-      <h1 class="text-lg font-bold text-neutral-900">ตั้งค่าระบบ</h1>
-      <p class="text-sm text-neutral-500 mt-0.5">ข้อมูลระบบและตัวเลือกทั่วไป</p>
+  <section class="space-y-5">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-700/40 bg-[radial-gradient(circle_at_14%_20%,rgba(255,255,255,.17),transparent_34%),linear-gradient(132deg,#0f172a_0%,#1f3f4a_46%,#0b2530_100%)] px-6 py-6 text-white shadow-[0_18px_45px_-30px_rgba(2,6,23,.95)]">
+      <div class="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-cyan-300/10 blur-2xl" />
+      <div class="pointer-events-none absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-teal-200/10 blur-2xl" />
+      <p class="text-[11px] uppercase tracking-[0.22em] text-slate-200/90 font-semibold">System Settings</p>
+      <h1 class="mt-2 text-2xl font-bold text-white leading-tight md:text-[30px]">ตั้งค่าระบบ</h1>
+      <p class="mt-2 text-sm text-slate-200/90">ภาพรวมระบบ การตั้งค่าโควต้า และการจัดการเซสชันแอดมิน</p>
     </div>
 
     <!-- System stats -->
-    <div class="bg-white rounded-2xl border border-neutral-200 p-6">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-base font-semibold text-neutral-900">ภาพรวมระบบ</h3>
         <span v-if="overview.generated_at" class="text-xs text-neutral-400">
@@ -85,45 +185,99 @@ const sessionInfo = computed<StoredSession>(() => {
       <div v-if="loadingOverview" class="flex justify-center py-6">
         <span class="loading loading-spinner loading-sm text-[#16a34a]" />
       </div>
-      <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3 text-center">
+      <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div class="rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-cyan-50 px-4 py-3 text-center">
           <p class="text-2xl font-bold text-neutral-900">{{ overview.members_count ?? '-' }}</p>
           <p class="text-xs text-neutral-500 mt-1">สมาชิกทั้งหมด</p>
         </div>
-        <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3 text-center">
+        <div class="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-green-50 px-4 py-3 text-center">
           <p class="text-2xl font-bold text-neutral-900">{{ overview.bookings_count ?? '-' }}</p>
           <p class="text-xs text-neutral-500 mt-1">ออเดอร์ทั้งหมด</p>
         </div>
-        <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3 text-center">
+        <div class="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-yellow-50 px-4 py-3 text-center">
           <p class="text-2xl font-bold text-neutral-900">{{ overview.products_count ?? '-' }}</p>
           <p class="text-xs text-neutral-500 mt-1">สินค้าทั้งหมด</p>
         </div>
-        <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3 text-center">
+        <div class="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-fuchsia-50 px-4 py-3 text-center">
           <p class="text-2xl font-bold text-neutral-900">{{ overview.categories_count ?? '-' }}</p>
           <p class="text-xs text-neutral-500 mt-1">หมวดหมู่</p>
         </div>
-        <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3 text-center">
+        <div class="rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50 to-pink-50 px-4 py-3 text-center">
           <p class="text-2xl font-bold text-neutral-900">{{ overview.promotions_count ?? '-' }}</p>
           <p class="text-xs text-neutral-500 mt-1">โปรโมชัน</p>
         </div>
-        <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3 text-center">
+        <div class="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-3 text-center">
           <p class="text-2xl font-bold text-neutral-900">{{ overview.member_accounts_count ?? '-' }}</p>
           <p class="text-xs text-neutral-500 mt-1">บัญชีผู้ใช้</p>
         </div>
       </div>
     </div>
 
+    <!-- Capacity settings -->
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
+      <div class="flex items-center justify-between gap-2 mb-4">
+        <div>
+          <h3 class="text-base font-semibold text-neutral-900">ตั้งค่าโควต้าการผลิต</h3>
+          <p class="text-xs text-neutral-500 mt-1">บันทึกลงฐานข้อมูลทันที ไม่ต้องแก้ env และไม่ต้อง restart</p>
+        </div>
+        <span v-if="capacitySettingsUpdatedAt" class="text-xs text-neutral-400">
+          อัปเดตล่าสุด {{ formatDate(capacitySettingsUpdatedAt) }}
+        </span>
+      </div>
+
+      <div v-if="loadingCapacitySettings" class="flex justify-center py-6">
+        <span class="loading loading-spinner loading-sm text-[#16a34a]" />
+      </div>
+
+      <div v-else class="space-y-4">
+        <div v-if="capacitySettingsError" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ capacitySettingsError }}
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="form-control w-full">
+            <span class="label-text text-xs text-neutral-500">โควต้าคิวรายวัน</span>
+            <input v-model.number="capacityForm.dailySchedule" type="number" min="1" class="input input-bordered ns-admin-input" />
+          </label>
+          <label class="form-control w-full">
+            <span class="label-text text-xs text-neutral-500">โควต้าคิวรายเดือน (ค่าเริ่มต้น)</span>
+            <input v-model.number="capacityForm.monthlyEventDefault" type="number" min="1" class="input input-bordered ns-admin-input" />
+          </label>
+        </div>
+
+        <label class="form-control w-full">
+          <span class="label-text text-xs text-neutral-500">โควต้าแยกตามแพคเกจ (รูปแบบ key:capacity,key2:capacity)</span>
+          <textarea v-model="capacityForm.monthlyByPackage" rows="3" class="ns-admin-textarea" placeholder="งานแต่ง:120,งานขึ้นบ้านใหม่:80" />
+        </label>
+
+        <label class="form-control w-full">
+          <span class="label-text text-xs text-neutral-500">โควต้าแยกตามประเภทงาน (รูปแบบ key:capacity,key2:capacity)</span>
+          <textarea v-model="capacityForm.monthlyByWorkType" rows="3" class="ns-admin-textarea" placeholder="บายศรีต้น:60,บายศรีปากชาม:40" />
+        </label>
+
+        <div class="flex justify-end">
+          <button
+            class="btn ns-admin-btn ns-admin-btn-primary border-none"
+            :disabled="savingCapacitySettings"
+            @click="saveCapacitySettings"
+          >
+            {{ savingCapacitySettings ? 'กำลังบันทึก...' : 'บันทึกค่าโควต้า' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Session info -->
-    <div class="bg-white rounded-2xl border border-neutral-200 p-6">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
       <h3 class="text-base font-semibold text-neutral-900 mb-4">ข้อมูลเซสชัน</h3>
       <div class="space-y-2 text-sm">
-        <div class="flex items-center justify-between rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+        <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <span class="text-neutral-500">ผู้ใช้งานปัจจุบัน</span>
           <span class="font-medium text-neutral-900">
             {{ sessionInfo.member ? `${sessionInfo.member.firstName} ${sessionInfo.member.lastName}` : '-' }}
           </span>
         </div>
-        <div class="flex items-center justify-between rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+        <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <span class="text-neutral-500">สิทธิ์การเข้าถึง</span>
           <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">แอดมิน</span>
         </div>
@@ -131,12 +285,12 @@ const sessionInfo = computed<StoredSession>(() => {
     </div>
 
     <!-- Navigation shortcuts -->
-    <div class="bg-white rounded-2xl border border-neutral-200 p-6">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
       <h3 class="text-base font-semibold text-neutral-900 mb-4">ลิงก์ด่วน</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <NuxtLink
           to="/admin/profile"
-          class="flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3 hover:border-[#bbf7d0] hover:bg-[#f0fdf4] transition-colors group"
+          class="group flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition-colors hover:border-cyan-200 hover:bg-cyan-50"
         >
           <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0 group-hover:bg-purple-200 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-purple-700">
@@ -150,7 +304,7 @@ const sessionInfo = computed<StoredSession>(() => {
         </NuxtLink>
         <NuxtLink
           to="/admin/admins"
-          class="flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3 hover:border-[#bbf7d0] hover:bg-[#f0fdf4] transition-colors group"
+          class="group flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition-colors hover:border-cyan-200 hover:bg-cyan-50"
         >
           <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-200 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-blue-700">
@@ -164,7 +318,7 @@ const sessionInfo = computed<StoredSession>(() => {
         </NuxtLink>
         <NuxtLink
           to="/admin/users"
-          class="flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3 hover:border-[#bbf7d0] hover:bg-[#f0fdf4] transition-colors group"
+          class="group flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition-colors hover:border-cyan-200 hover:bg-cyan-50"
         >
           <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0 group-hover:bg-green-200 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-green-700">
@@ -178,7 +332,7 @@ const sessionInfo = computed<StoredSession>(() => {
         </NuxtLink>
         <NuxtLink
           to="/admin/dashboard"
-          class="flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3 hover:border-[#bbf7d0] hover:bg-[#f0fdf4] transition-colors group"
+          class="group flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition-colors hover:border-cyan-200 hover:bg-cyan-50"
         >
           <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 group-hover:bg-amber-200 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-amber-700">
@@ -194,7 +348,7 @@ const sessionInfo = computed<StoredSession>(() => {
     </div>
 
     <!-- Danger zone -->
-    <div class="bg-white rounded-2xl border border-red-100 p-6">
+    <div class="rounded-3xl border border-red-100 bg-white p-6 shadow-[0_20px_45px_-42px_rgba(15,23,42,.4)]">
       <h3 class="text-base font-semibold text-red-700 mb-1">โซนอันตราย</h3>
       <p class="text-sm text-neutral-500 mb-4">การกระทำเหล่านี้ไม่สามารถยกเลิกได้</p>
       <button
@@ -209,5 +363,5 @@ const sessionInfo = computed<StoredSession>(() => {
         ออกจากระบบ
       </button>
     </div>
-  </div>
+  </section>
 </template>

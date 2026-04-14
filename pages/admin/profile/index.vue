@@ -160,11 +160,13 @@ const submitChangePw = async () => {
 </script>
 
 <template>
-  <div class="space-y-5">
-    <!-- Header -->
-    <div>
-      <h1 class="text-lg font-bold text-neutral-900">โปรไฟล์ของฉัน</h1>
-      <p class="text-sm text-neutral-500 mt-0.5">ข้อมูลส่วนตัวและการตั้งค่าบัญชี</p>
+  <section class="space-y-5">
+    <div class="relative overflow-hidden rounded-3xl border border-slate-700/40 bg-[radial-gradient(circle_at_14%_20%,rgba(255,255,255,.17),transparent_34%),linear-gradient(132deg,#0f172a_0%,#1e3a8a_46%,#1e1b4b_100%)] px-6 py-6 text-white shadow-[0_18px_45px_-30px_rgba(2,6,23,.95)]">
+      <div class="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-sky-300/10 blur-2xl" />
+      <div class="pointer-events-none absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-indigo-200/10 blur-2xl" />
+      <p class="text-[11px] uppercase tracking-[0.22em] text-slate-200/90 font-semibold">Account Profile</p>
+      <h1 class="mt-2 text-2xl font-bold text-white leading-tight md:text-[30px]">โปรไฟล์ของฉัน</h1>
+      <p class="mt-2 text-sm text-slate-200/90">จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชีแอดมิน</p>
     </div>
 
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -173,20 +175,20 @@ const submitChangePw = async () => {
 
     <template v-else-if="member">
       <!-- Profile card -->
-      <div class="bg-white rounded-2xl border border-neutral-200 p-6">
+      <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
         <div class="flex items-center gap-4">
-          <div class="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-2xl shrink-0">
+          <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-2xl font-bold text-indigo-700">
             {{ member.firstName.charAt(0) }}
           </div>
           <div class="flex-1 min-w-0">
             <h2 class="text-xl font-bold text-neutral-900">{{ member.firstName }} {{ member.lastName }}</h2>
             <div class="flex items-center gap-2 mt-1">
-              <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">แอดมิน</span>
+              <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">แอดมิน</span>
               <span v-if="account" class="text-sm text-neutral-500 font-mono">{{ account.phone }}</span>
             </div>
           </div>
           <button
-            class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:border-[#bbf7d0] hover:bg-[#f0fdf4] hover:text-[#166534] transition-colors"
+            class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
             @click="openEdit"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -197,23 +199,23 @@ const submitChangePw = async () => {
         </div>
 
         <div class="mt-6 grid grid-cols-2 gap-3">
-          <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p class="text-xs text-neutral-500">ชื่อ</p>
             <p class="mt-0.5 font-medium text-neutral-900">{{ member.firstName }}</p>
           </div>
-          <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p class="text-xs text-neutral-500">นามสกุล</p>
             <p class="mt-0.5 font-medium text-neutral-900">{{ member.lastName }}</p>
           </div>
-          <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p class="text-xs text-neutral-500">เพศ</p>
             <p class="mt-0.5 font-medium text-neutral-900">{{ genderName }}</p>
           </div>
-          <div class="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p class="text-xs text-neutral-500">คำนำหน้า</p>
             <p class="mt-0.5 font-medium text-neutral-900">{{ prefixName }}</p>
           </div>
-          <div class="col-span-2 rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+          <div class="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p class="text-xs text-neutral-500">ล็อกอินล่าสุด</p>
             <p class="mt-0.5 font-medium text-neutral-900">{{ formatDate(member.lastLogin) }}</p>
           </div>
@@ -221,22 +223,22 @@ const submitChangePw = async () => {
       </div>
 
       <!-- Account security card -->
-      <div class="bg-white rounded-2xl border border-neutral-200 p-6">
+      <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-42px_rgba(15,23,42,.7)]">
         <h3 class="text-base font-semibold text-neutral-900">ความปลอดภัยบัญชี</h3>
         <div class="mt-4 space-y-3">
-          <div class="flex items-center justify-between rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+          <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div>
               <p class="text-sm font-medium text-neutral-800">เบอร์โทรศัพท์</p>
               <p class="text-sm text-neutral-500 font-mono mt-0.5">{{ account?.phone ?? '-' }}</p>
             </div>
           </div>
-          <div class="flex items-center justify-between rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+          <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div>
               <p class="text-sm font-medium text-neutral-800">รหัสผ่าน</p>
               <p class="text-sm text-neutral-400 mt-0.5">••••••••</p>
             </div>
             <button
-              class="inline-flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-900 transition-colors"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-slate-800"
               @click="openChangePw"
             >
               เปลี่ยนรหัสผ่าน
@@ -246,7 +248,7 @@ const submitChangePw = async () => {
       </div>
     </template>
 
-    <div v-else class="bg-white rounded-2xl border border-neutral-200 p-10 text-center">
+    <div v-else class="rounded-3xl border border-slate-200 bg-white p-10 text-center">
       <p class="text-sm text-neutral-400">ไม่พบข้อมูลโปรไฟล์</p>
     </div>
 
@@ -255,11 +257,11 @@ const submitChangePw = async () => {
       <div class="grid grid-cols-2 gap-4 text-sm">
         <div>
           <label class="block text-xs text-neutral-500 mb-1">ชื่อ *</label>
-          <input v-model="editForm.firstName" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="editForm.firstName" type="text" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">นามสกุล *</label>
-          <input v-model="editForm.lastName" type="text" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="editForm.lastName" type="text" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">เพศ</label>
@@ -280,9 +282,9 @@ const submitChangePw = async () => {
       </div>
       <template #actions>
         <div class="flex justify-end gap-2">
-          <button class="rounded-lg border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors" @click="editModalRef?.close()">ยกเลิก</button>
+          <button class="ns-admin-btn ns-admin-btn-secondary" @click="editModalRef?.close()">ยกเลิก</button>
           <button
-            class="inline-flex items-center gap-1.5 rounded-lg bg-[#15803d] px-4 py-2 text-sm font-medium text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+            class="ns-admin-btn ns-admin-btn-primary disabled:opacity-60"
             :disabled="saving"
             @click="submitEdit"
           >
@@ -298,16 +300,16 @@ const submitChangePw = async () => {
       <div class="space-y-3 text-sm">
         <div>
           <label class="block text-xs text-neutral-500 mb-1">รหัสผ่านใหม่ *</label>
-          <input v-model="pwForm.newPassword" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="pwForm.newPassword" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" class="ns-admin-input" />
         </div>
         <div>
           <label class="block text-xs text-neutral-500 mb-1">ยืนยันรหัสผ่านใหม่ *</label>
-          <input v-model="pwForm.confirmPassword" type="password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง" class="w-full h-9 rounded-lg border border-neutral-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#16a34a]/30" />
+          <input v-model="pwForm.confirmPassword" type="password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง" class="ns-admin-input" />
         </div>
       </div>
       <template #actions>
         <div class="flex justify-end gap-2">
-          <button class="rounded-lg border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors" @click="pwModalRef?.close()">ยกเลิก</button>
+          <button class="ns-admin-btn ns-admin-btn-secondary" @click="pwModalRef?.close()">ยกเลิก</button>
           <button
             class="inline-flex items-center gap-1.5 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-900 transition-colors disabled:opacity-60"
             :disabled="changingPw"
@@ -319,5 +321,5 @@ const submitChangePw = async () => {
         </div>
       </template>
     </BaseModal>
-  </div>
+  </section>
 </template>
