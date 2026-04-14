@@ -155,7 +155,7 @@ onMounted(fetchOrders)
           <h1 class="text-2xl font-bold text-neutral-900">คำสั่งซื้อของฉัน</h1>
           <p class="text-sm text-neutral-500 mt-1">ดูสถานะและรายละเอียดออเดอร์ทั้งหมด</p>
         </div>
-        <NuxtLink to="/booking" class="rounded-xl bg-[#166534] px-4 py-2 text-sm font-semibold text-white hover:bg-[#14532d] transition-colors">
+        <NuxtLink to="/booking" class="ns-ui-btn ns-ui-btn-primary">
           + สั่งใหม่
         </NuxtLink>
       </div>
@@ -186,7 +186,7 @@ onMounted(fetchOrders)
       <div v-else-if="filteredBookings.length === 0" class="rounded-2xl border border-[#bbf7d0] bg-white px-6 py-14 text-center">
         <div class="text-neutral-600 font-medium">ยังไม่มีรายการสั่งซื้อ</div>
         <div class="text-sm text-neutral-400 mt-1 mb-5">ไม่พบคำสั่งซื้อในสถานะที่เลือก</div>
-        <NuxtLink to="/booking" class="inline-block rounded-xl bg-[#166534] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#14532d] transition-colors">
+        <NuxtLink to="/booking" class="ns-ui-btn ns-ui-btn-primary">
           สั่งบายศรีเลย
         </NuxtLink>
       </div>

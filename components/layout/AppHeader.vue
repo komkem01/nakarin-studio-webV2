@@ -435,14 +435,14 @@ const logout = () => {
       <div class="w-full flex items-center justify-end gap-2">
         <button
           type="button"
-          class="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          class="ns-ui-btn ns-ui-btn-secondary"
           @click="logoutConfirmModalRef?.close()"
         >
           ยกเลิก
         </button>
         <button
           type="button"
-          class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+          class="ns-ui-btn ns-ui-btn-danger"
           @click="logout"
         >
           ออกจากระบบ

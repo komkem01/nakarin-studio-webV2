@@ -138,11 +138,11 @@ onMounted(async () => {
               </div>
 
               <div class="flex flex-wrap gap-3">
-                <NuxtLink to="/booking" class="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-[#166534] hover:bg-[#f0fdf4] transition-colors shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)]">
+                <NuxtLink to="/booking" class="ns-ui-btn bg-white px-6 py-3 text-sm font-bold text-[#166534] hover:bg-[#f0fdf4] shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)]">
                   สั่งบายศรีเลย
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" /></svg>
                 </NuxtLink>
-                <a href="#packages" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors">ดูแพคเกจ</a>
+                <a href="#packages" class="ns-ui-btn items-center gap-2 border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20">ดูแพคเกจ</a>
               </div>
 
               <ul class="space-y-2.5 pt-1">
@@ -159,13 +159,13 @@ onMounted(async () => {
           <!-- Right action panel -->
           <div class="space-y-5 hero-fade-up delay-100">
             <div class="grid grid-cols-2 gap-4">
-              <div v-for="stat in heroStats" :key="stat.label" class="rounded-2xl border border-[#bbf7d0] bg-white p-5 text-center shadow-[0_10px_20px_-14px_rgba(22,101,52,0.35)]">
+              <div v-for="stat in heroStats" :key="stat.label" class="ns-ui-card p-5 text-center shadow-[0_10px_20px_-14px_rgba(22,101,52,0.35)]">
                 <div class="text-2xl font-bold text-[#166534]">{{ stat.value }}</div>
                 <div class="text-xs text-neutral-500 mt-1">{{ stat.label }}</div>
               </div>
             </div>
 
-            <div class="rounded-2xl border border-[#bbf7d0] bg-white p-5 space-y-4">
+            <div class="ns-ui-card p-5 space-y-4">
               <div class="flex items-center justify-between">
                 <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">ขั้นตอนการสั่ง</p>
                 <NuxtLink to="/booking" class="text-xs font-semibold text-[#166534] hover:underline">เริ่มทันที</NuxtLink>
@@ -181,7 +181,7 @@ onMounted(async () => {
               </div>
             </div>
 
-            <div class="rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] p-5 space-y-3">
+            <div class="ns-ui-card-soft p-5 space-y-3">
               <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">แพคเกจยอดนิยม</p>
               <div v-if="loadingPackages" class="space-y-2">
                 <div v-for="i in 3" :key="i" class="h-14 rounded-xl bg-[#bbf7d0]/40 animate-pulse" />
@@ -206,19 +206,19 @@ onMounted(async () => {
       <UContainer>
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div class="space-y-2">
-            <span class="inline-block rounded-full border border-[#bbf7d0] bg-white px-3 py-1 text-xs font-semibold text-[#166534] uppercase tracking-widest">บริการหลัก</span>
+            <span class="ns-ui-pill">บริการหลัก</span>
             <h2 class="text-3xl font-bold text-neutral-900">บายศรีหลายรูปแบบ<br /><span class="text-[#166534] text-2xl font-medium">เลือกได้ตามงาน</span></h2>
           </div>
-          <NuxtLink to="/booking" class="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-[#bbf7d0] bg-white px-4 py-2 text-sm font-semibold text-[#166534] hover:bg-[#f0fdf4] transition-colors">สั่งเลย <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" /></svg></NuxtLink>
+          <NuxtLink to="/booking" class="ns-ui-btn ns-ui-btn-secondary shrink-0">สั่งเลย <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" /></svg></NuxtLink>
         </div>
 
-        <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 rounded-2xl border border-[#bbf7d0] bg-white px-4 py-3 shadow-[0_12px_24px_-22px_rgba(22,101,52,0.45)]">
+        <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 ns-ui-card px-4 py-3 shadow-[0_12px_24px_-22px_rgba(22,101,52,0.45)]">
           <div class="flex flex-wrap items-center gap-2">
             <button
               v-for="opt in filterOptions"
               :key="opt.value"
-              class="rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors"
-              :class="filterTag === opt.value ? 'bg-[#166534] text-white border-[#166534]' : 'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0] hover:bg-white'"
+              class="ns-ui-filter-chip"
+              :class="filterTag === opt.value ? 'ns-ui-filter-chip-active' : ''"
               @click="filterTag = opt.value"
             >
               {{ opt.label }}
@@ -273,19 +273,19 @@ onMounted(async () => {
       <UContainer>
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div class="space-y-2">
-            <span class="inline-block rounded-full border border-[#bbf7d0] bg-white px-3 py-1 text-xs font-semibold text-[#166534] uppercase tracking-widest">แพคเกจพิเศษ</span>
+            <span class="ns-ui-pill">แพคเกจพิเศษ</span>
             <h2 class="text-3xl font-bold text-neutral-900">แพคเกจพร้อมจัด<br /><span class="text-[#166534] text-2xl font-medium">คุ้มค่าทุกโอกาส</span></h2>
           </div>
-          <NuxtLink to="/booking" class="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-[#bbf7d0] bg-white px-4 py-2 text-sm font-semibold text-[#166534] hover:bg-[#f0fdf4] transition-colors">ดูทั้งหมด <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" /></svg></NuxtLink>
+          <NuxtLink to="/booking" class="ns-ui-btn ns-ui-btn-secondary shrink-0">ดูทั้งหมด <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" /></svg></NuxtLink>
         </div>
 
-        <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 rounded-2xl border border-[#bbf7d0] bg-white px-4 py-3 shadow-[0_12px_24px_-22px_rgba(22,101,52,0.45)]">
+        <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 ns-ui-card px-4 py-3 shadow-[0_12px_24px_-22px_rgba(22,101,52,0.45)]">
           <div class="flex flex-wrap items-center gap-2">
             <button
               v-for="opt in filterOptions"
               :key="`pkg-${opt.value}`"
-              class="rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors"
-              :class="filterTag === opt.value ? 'bg-[#166534] text-white border-[#166534]' : 'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0] hover:bg-white'"
+              class="ns-ui-filter-chip"
+              :class="filterTag === opt.value ? 'ns-ui-filter-chip-active' : ''"
               @click="filterTag = opt.value"
             >
               {{ opt.label }}
@@ -325,7 +325,7 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
-            <NuxtLink to="/booking" class="mt-5 block w-full text-center rounded-xl py-2.5 text-sm font-semibold transition-colors" :class="i === 0 ? 'bg-[#166534] text-white hover:bg-[#14532d] shadow-[0_6px_14px_-6px_rgba(22,101,52,0.6)]' : 'border border-[#bbf7d0] text-[#166534] hover:bg-[#f0fdf4]'">
+            <NuxtLink to="/booking" class="mt-5 block w-full text-center ns-ui-btn" :class="i === 0 ? 'ns-ui-btn-primary' : 'ns-ui-btn-secondary'">
               เลือกแพคเกจนี้
             </NuxtLink>
           </div>
@@ -348,8 +348,8 @@ onMounted(async () => {
           <h2 class="text-3xl md:text-4xl font-bold text-white">อยากได้บายศรีสำหรับงาน?</h2>
           <p class="text-[#bbf7d0]/80 text-base">สั่งได้เลยตอนนี้ ทีมงานจะยืนยันออเดอร์ภายใน 24 ชั่วโมง</p>
           <div class="flex flex-wrap items-center justify-center gap-3">
-            <NuxtLink to="/booking" class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3 text-sm font-bold text-[#166534] hover:bg-[#f0fdf4] transition-colors shadow-[0_10px_24px_-10px_rgba(0,0,0,0.3)]">จองคิวออนไลน์</NuxtLink>
-            <a href="#products" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-8 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors">ดูบริการ</a>
+            <NuxtLink to="/booking" class="ns-ui-btn items-center gap-2 bg-white px-8 py-3 text-sm font-bold text-[#166534] hover:bg-[#f0fdf4] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.3)]">จองคิวออนไลน์</NuxtLink>
+            <a href="#products" class="ns-ui-btn items-center gap-2 border border-white/30 bg-white/10 px-8 py-3 text-sm font-semibold text-white hover:bg-white/20">ดูบริการ</a>
           </div>
         </div>
       </UContainer>

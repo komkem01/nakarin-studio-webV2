@@ -153,7 +153,7 @@ const handleSubmit = async () => {
                   type="tel"
                   placeholder="0812345678"
                   autocomplete="tel"
-                  class="w-full rounded-xl border pl-10 pr-4 py-3 text-sm outline-none transition-all placeholder:text-neutral-400 bg-white"
+                  class="ns-ui-input w-full pl-10 pr-4"
                   :class="errors.phone ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100' : 'border-neutral-200 focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10'"
                 />
               </div>

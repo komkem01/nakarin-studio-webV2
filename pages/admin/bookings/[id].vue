@@ -139,7 +139,7 @@ const populateForm = () => {
   form.deliveryDistrictId = order.value.deliveryDistrictId ?? ''
   form.deliverySubDistrictId = order.value.deliverySubDistrictId ?? ''
   form.deliveryZipcodeId = order.value.deliveryZipcodeId ?? ''
-  form.eventDate = order.value.eventDate ? order.value.eventDate.slice(0, 10) : null
+  form.eventDate = toLocalDatetimeInput(order.value.eventDate)
   form.scheduledAt = toLocalDatetimeInput(order.value.scheduledAt)
   form.deliveryAt = toLocalDatetimeInput(order.value.deliveryAt)
   form.basePrice = order.value.basePrice
@@ -243,12 +243,15 @@ const formatDateTime = (s: string | null) =>
 // ─── Booking Details ──────────────────────────────────────────────────────────
 
 const details = ref<BookingDetailRow[]>([])
+const customerNotes = computed(() =>
+  Array.from(new Set(details.value.map(d => d.note?.trim()).filter((note): note is string => Boolean(note)))),
+)
 const loadingDetails = ref(false)
 const showDetailForm = ref(false)
 const editingDetailId = ref<string | null>(null)
 const savingDetail = ref(false)
 const deletingDetailId = ref('')
-const detailForm = reactive({ itemName: '', option: '', material: '', quantity: 1, unitPrice: 0, note: '' })
+const detailForm = reactive({ itemName: '', isAddon: true, option: '', material: '', quantity: 1, unitPrice: 0, note: '' })
 
 // Products for dropdown
 type ProductOption = { id: string; name: string; price: number }
@@ -302,7 +305,7 @@ const loadDetails = async () => {
 
 const openDetailAdd = () => {
   editingDetailId.value = null
-  Object.assign(detailForm, { itemName: '', option: '', material: '', quantity: 1, unitPrice: 0, note: '' })
+  Object.assign(detailForm, { itemName: '', isAddon: true, option: '', material: '', quantity: 1, unitPrice: 0, note: '' })
   productSearch.value = ''
   showProductDropdown.value = false
   showDetailForm.value = true
@@ -311,7 +314,7 @@ const openDetailAdd = () => {
 
 const openDetailEdit = (d: BookingDetailRow) => {
   editingDetailId.value = d.id
-  Object.assign(detailForm, { itemName: d.itemName, option: d.option ?? '', material: d.material ?? '', quantity: d.quantity, unitPrice: d.unitPrice, note: d.note ?? '' })
+  Object.assign(detailForm, { itemName: d.itemName, isAddon: d.isAddon, option: d.option ?? '', material: d.material ?? '', quantity: d.quantity, unitPrice: d.unitPrice, note: d.note ?? '' })
   productSearch.value = d.itemName
   showProductDropdown.value = false
   showDetailForm.value = true
@@ -322,7 +325,7 @@ const saveDetail = async (keepOpen = false) => {
   if (!detailForm.itemName.trim() || detailForm.quantity < 1) return
   savingDetail.value = true
   try {
-    const payload = { bookingId: id, itemName: detailForm.itemName, option: detailForm.option || null, material: detailForm.material || null, quantity: Number(detailForm.quantity), unitPrice: Number(detailForm.unitPrice), note: detailForm.note || null }
+    const payload = { bookingId: id, itemName: detailForm.itemName, isAddon: detailForm.isAddon, option: detailForm.option || null, material: detailForm.material || null, quantity: Number(detailForm.quantity), unitPrice: Number(detailForm.unitPrice), note: detailForm.note || null }
     if (editingDetailId.value) {
       await updateBookingDetail(editingDetailId.value, payload)
       showDetailForm.value = false
@@ -332,7 +335,7 @@ const saveDetail = async (keepOpen = false) => {
         showDetailForm.value = false
       } else {
         // reset form for next item
-        Object.assign(detailForm, { itemName: '', option: '', material: '', quantity: 1, unitPrice: 0, note: '' })
+        Object.assign(detailForm, { itemName: '', isAddon: true, option: '', material: '', quantity: 1, unitPrice: 0, note: '' })
         productSearch.value = ''
       }
     }
@@ -594,7 +597,7 @@ onMounted(async () => {
               </div>
               <div>
                 <p class="text-neutral-400 text-xs mb-0.5">วันงาน</p>
-                <p class="text-neutral-800">{{ formatDate(order.eventDate) }}</p>
+                <p class="text-neutral-800">{{ formatDateTime(order.eventDate) }}</p>
               </div>
               <div>
                 <p class="text-neutral-400 text-xs mb-0.5">นัดส่ง</p>
@@ -603,6 +606,13 @@ onMounted(async () => {
               <div>
                 <p class="text-neutral-400 text-xs mb-0.5">ส่งจริง</p>
                 <p class="text-neutral-800">{{ formatDateTime(order.deliveryAt) }}</p>
+              </div>
+              <div class="md:col-span-2">
+                <p class="text-neutral-400 text-xs mb-0.5">หมายเหตุจากลูกค้า</p>
+                <p v-if="customerNotes.length === 0" class="text-neutral-800">-</p>
+                <div v-else class="space-y-1">
+                  <p v-for="(note, idx) in customerNotes" :key="`${note}-${idx}`" class="text-neutral-800 whitespace-pre-wrap break-words">{{ note }}</p>
+                </div>
               </div>
             </div>
 
@@ -687,8 +697,8 @@ onMounted(async () => {
                 />
               </div>
               <div>
-                <label class="block text-xs text-neutral-500 mb-1">วันงาน</label>
-                <BaseDatePicker v-model="form.eventDate" mode="date" placeholder="เลือกวันงาน" />
+                <label class="block text-xs text-neutral-500 mb-1">วันงาน (วันและเวลา)</label>
+                <BaseDatePicker v-model="form.eventDate" mode="datetime" placeholder="เลือกวันและเวลา" />
               </div>
               <div>
                 <label class="block text-xs text-neutral-500 mb-1">นัดส่ง</label>
@@ -835,6 +845,13 @@ onMounted(async () => {
               <label class="block text-xs text-neutral-500 mb-1">ราคา/ชิ้น (฿) *</label>
               <input v-model="detailForm.unitPrice" type="number" min="0" class="ns-admin-input" />
             </div>
+            <div class="col-span-2 flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2.5">
+              <input v-model="detailForm.isAddon" type="checkbox" class="h-4 w-4 rounded border-neutral-300 text-[#166534] focus:ring-[#166534]" />
+              <div>
+                <p class="text-xs font-medium text-neutral-700">คิดเป็นค่าเสริม (Add-on)</p>
+                <p class="text-[11px] text-neutral-500">ปิดไว้เมื่อเป็นของที่รวมในแพคเกจแล้ว</p>
+              </div>
+            </div>
             <div class="col-span-2">
               <label class="block text-xs text-neutral-500 mb-1">หมายเหตุ</label>
               <input v-model="detailForm.note" type="text" placeholder="-" class="ns-admin-input" />
@@ -883,6 +900,7 @@ onMounted(async () => {
                 <th class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500">จำนวน</th>
                 <th class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500">ราคา/ชิ้น</th>
                 <th class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500">รวม</th>
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-neutral-500">ประเภท</th>
                 <th class="px-4 py-2.5 text-left text-xs font-medium text-neutral-500">หมายเหตุ</th>
                 <th class="px-4 py-2.5 w-20" />
               </tr>
@@ -895,6 +913,11 @@ onMounted(async () => {
                 <td class="px-4 py-2.5 text-right text-neutral-900">{{ d.quantity }}</td>
                 <td class="px-4 py-2.5 text-right text-neutral-900">฿{{ formatPrice(d.unitPrice) }}</td>
                 <td class="px-4 py-2.5 text-right font-semibold text-neutral-900">฿{{ formatPrice(d.subtotal) }}</td>
+                <td class="px-4 py-2.5 text-xs">
+                  <span class="inline-flex rounded-full px-2 py-0.5 font-medium" :class="d.isAddon ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
+                    {{ d.isAddon ? 'ค่าเสริม' : 'รวมในแพคเกจ' }}
+                  </span>
+                </td>
                 <td class="px-4 py-2.5 text-neutral-500 text-xs">{{ d.note ?? '-' }}</td>
                 <td class="px-4 py-2.5">
                   <div class="flex items-center gap-1 justify-end">

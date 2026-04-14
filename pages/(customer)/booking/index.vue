@@ -289,15 +289,18 @@ const getPackageItemUnitPrice = (item: any, fallbackName: string, fallbackUnitPr
 }
 
 const buildBookingDetailPayloads = (bookingId: string) => {
+  const customerNote = form.note?.trim() || null
+
   if (selectMode.value === 'product') {
     return selectedProducts.value.map((p: any) => ({
       bookingId,
       itemName: p.name,
+      isAddon: false,
       option: null,
       material: null,
       quantity: 1,
       unitPrice: Number(p.price) || 0,
-      note: null,
+      note: customerNote,
     }))
   }
 
@@ -311,11 +314,12 @@ const buildBookingDetailPayloads = (bookingId: string) => {
       return {
         bookingId,
         itemName,
+        isAddon: false,
         option: null,
         material: null,
         quantity,
         unitPrice: getPackageItemUnitPrice(item, itemName, fallbackUnitPrice),
-        note: null,
+        note: customerNote,
       }
     })
   }
@@ -324,11 +328,12 @@ const buildBookingDetailPayloads = (bookingId: string) => {
     ? [{
         bookingId,
         itemName: selectedPackage.value.name,
+        isAddon: false,
         option: null,
         material: null,
         quantity: 1,
         unitPrice: Number(selectedPackage.value.price) || 0,
-        note: null,
+        note: customerNote,
       }]
     : []
 }
@@ -407,8 +412,8 @@ const handleSubmit = async () => {
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const fieldCls = (err: string) =>
-  `w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors ${
-    err ? 'border-red-300 bg-red-50' : 'border-[#bbf7d0] bg-[#f0fdf4] focus:border-[#166534] focus:bg-white'
+  `w-full ns-ui-input ${
+    err ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-0' : 'border-[#bbf7d0] bg-[#f0fdf4] focus:bg-white'
   }`
 
 const provinceName = computed(() => provinces.value.find(p => p.id === form.provinceId)?.name || '')
@@ -536,7 +541,7 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
             <div class="text-2xl font-bold text-[#166534]">{{ currency(basePrice) }}</div>
           </div>
           <button
-            class="rounded-xl bg-[#166534] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#14532d] transition-colors shadow-[0_4px_12px_-4px_rgba(22,101,52,0.5)] disabled:opacity-50"
+            class="ns-ui-btn ns-ui-btn-primary disabled:opacity-50"
             :disabled="selectMode === 'package' ? !selectedPackageId : selectedProductIds.length === 0"
             @click="goToAddress"
           >
@@ -648,10 +653,10 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
         <div class="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-4 space-y-3">
           <label class="text-sm font-medium text-neutral-700">โค้ดส่วนลด</label>
           <div class="flex gap-2">
-            <input v-model="form.promoCode" type="text" placeholder="ใส่โค้ดส่วนลด" :class="`flex-1 rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors ${promoResult?.valid === false ? 'border-red-300 bg-red-50' : 'border-[#bbf7d0] bg-white focus:border-[#166534]'}`" />
+            <input v-model="form.promoCode" type="text" placeholder="ใส่โค้ดส่วนลด" :class="`flex-1 ns-ui-input ${promoResult?.valid === false ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-0' : 'border-[#bbf7d0] bg-white'}`" />
             <button
               :disabled="checkingPromo || !form.promoCode"
-              class="rounded-xl bg-[#166534] px-4 py-2 text-sm font-semibold text-white hover:bg-[#14532d] disabled:opacity-50 transition-colors shrink-0"
+              class="ns-ui-btn ns-ui-btn-primary shrink-0 disabled:opacity-50"
               @click="checkPromo"
             >
               {{ checkingPromo ? '...' : 'ใช้โค้ด' }}
@@ -664,10 +669,10 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
         </div>
 
         <div class="flex gap-3 pt-2">
-          <button class="flex-1 rounded-xl border border-[#bbf7d0] py-2.5 text-sm font-medium text-neutral-600 hover:bg-[#f0fdf4] transition-colors" @click="step = 'select'">
+          <button class="flex-1 ns-ui-btn ns-ui-btn-secondary" @click="step = 'select'">
             ← ย้อนกลับ
           </button>
-          <button class="flex-1 rounded-xl bg-[#166534] py-2.5 text-sm font-semibold text-white hover:bg-[#14532d] transition-colors shadow-[0_4px_12px_-4px_rgba(22,101,52,0.5)]" @click="goToConfirm">
+          <button class="flex-1 ns-ui-btn ns-ui-btn-primary" @click="goToConfirm">
             ถัดไป →
           </button>
         </div>
@@ -737,12 +742,12 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
         </div>
 
         <div class="flex gap-3">
-          <button class="flex-1 rounded-xl border border-[#bbf7d0] py-2.5 text-sm font-medium text-neutral-600 hover:bg-[#f0fdf4] transition-colors" @click="step = 'address'">
+          <button class="flex-1 ns-ui-btn ns-ui-btn-secondary" @click="step = 'address'">
             ← ย้อนกลับ
           </button>
           <button
             :disabled="submitting"
-            class="flex-1 rounded-xl bg-[#166534] py-2.5 text-sm font-semibold text-white hover:bg-[#14532d] transition-colors shadow-[0_4px_12px_-4px_rgba(22,101,52,0.5)] disabled:opacity-60 flex items-center justify-center gap-2"
+            class="flex-1 ns-ui-btn ns-ui-btn-primary disabled:opacity-60 gap-2"
             @click="handleSubmit"
           >
             <svg v-if="submitting" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

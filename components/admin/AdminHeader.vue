@@ -7,6 +7,8 @@ const titleMap: Record<string, string> = {
   "/admin/product-categories": "จัดการหมวดหมู่สินค้า",
   "/admin/packages": "จัดการแพคเกจ",
   "/admin/bookings": "จัดการออเดอร์",
+  "/admin/bookings/[id]": "รายละเอียดออเดอร์",
+  "/admin/reports": "รายงาน",
   "/admin/capacity": "คิวการผลิตรายเดือน",
   "/admin/messages": "จัดการข้อความ",
   "/admin/users": "จัดการผู้ใช้งาน",

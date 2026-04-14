@@ -136,6 +136,18 @@ type BookingAttachment = {
   isVerified: boolean
 }
 
+type BookingLineItem = {
+  id: string
+  itemName: string
+  isAddon: boolean
+  option: string | null
+  material: string | null
+  quantity: number
+  unitPrice: number
+  subtotal: number
+  note: string | null
+}
+
 type BookingMessage = {
   id: string
   bookingId: string
@@ -150,6 +162,8 @@ const loading = ref(true)
 const errorMessage = ref('')
 const loadingAttachments = ref(false)
 const attachments = ref<BookingAttachment[]>([])
+const loadingDetails = ref(false)
+const details = ref<BookingLineItem[]>([])
 const messages = ref<BookingMessage[]>([])
 const loadingMessages = ref(false)
 const sendingMessage = ref(false)
@@ -288,6 +302,26 @@ const paymentAmount = computed(() => {
   return booking.value.balanceAmount > 0 ? booking.value.balanceAmount : booking.value.depositAmount
 })
 
+const detailItemsTotal = computed(() =>
+  details.value.reduce((sum, item) => sum + item.subtotal, 0),
+)
+
+const packageIncludedAmount = computed(() =>
+  details.value.reduce((sum, item) => sum + (item.isAddon ? 0 : item.subtotal), 0),
+)
+
+const detailAddonTotal = computed(() =>
+  details.value.reduce((sum, item) => sum + (item.isAddon ? item.subtotal : 0), 0),
+)
+
+const customerNotes = computed(() =>
+  Array.from(new Set(details.value.map(item => item.note?.trim()).filter((note): note is string => Boolean(note)))),
+)
+
+const orderAddonTotal = computed(() => Math.max(0, booking.value?.addonPrice || 0))
+const detailTotalDiff = computed(() => orderAddonTotal.value - detailAddonTotal.value)
+const isDetailTotalMatched = computed(() => Math.abs(detailTotalDiff.value) < 0.5)
+
 const normalizeAttachment = (src: unknown): BookingAttachment => {
   const d = asRecord(src)
   return {
@@ -298,6 +332,25 @@ const normalizeAttachment = (src: unknown): BookingAttachment => {
     mimeType: pickStr(d, 'mimeType', 'mime_type') || null,
     fileSize: pickNum(d, 'fileSize', 'file_size') || null,
     isVerified: Boolean(d.isVerified ?? d.is_verified),
+  }
+}
+
+const normalizeDetail = (src: unknown): BookingLineItem => {
+  const d = asRecord(src)
+  const quantity = Math.max(1, pickNum(d, 'quantity'))
+  const unitPrice = Math.max(0, pickNum(d, 'unit_price', 'unitPrice'))
+  const subtotalRaw = pickNum(d, 'subtotal')
+  const subtotal = subtotalRaw > 0 ? subtotalRaw : quantity * unitPrice
+  return {
+    id: pickStr(d, 'id'),
+    itemName: pickStr(d, 'item_name', 'itemName') || '-',
+    isAddon: Boolean(d.is_addon ?? d.isAddon),
+    option: pickNullable(d, 'option'),
+    material: pickNullable(d, 'material'),
+    quantity,
+    unitPrice,
+    subtotal,
+    note: pickNullable(d, 'note'),
   }
 }
 
@@ -381,6 +434,22 @@ const loadMessages = async () => {
     messages.value = []
   } finally {
     loadingMessages.value = false
+  }
+}
+
+const loadDetails = async () => {
+  if (!booking.value?.id) return
+  loadingDetails.value = true
+  try {
+    const res = await authFetch<any>('/api/v1/booking-details', {
+      query: { bookingId: booking.value.id },
+    })
+    const items: unknown[] = Array.isArray(res?.data) ? res.data : []
+    details.value = items.map(normalizeDetail)
+  } catch {
+    details.value = []
+  } finally {
+    loadingDetails.value = false
   }
 }
 
@@ -489,6 +558,7 @@ const fetchDetail = async () => {
 onMounted(fetchDetail)
 watch(booking, () => {
   loadAttachments()
+  loadDetails()
   resolveDeliveryAddressNames()
   loadMessages()
   if (booking.value?.id) startMessageAutoRefresh()
@@ -546,7 +616,7 @@ onBeforeUnmount(() => {
             </div>
             <div>
               <p class="text-neutral-400">วันงาน</p>
-              <p class="font-medium text-neutral-900 mt-1">{{ formatDate(booking.eventDate) }}</p>
+              <p class="font-medium text-neutral-900 mt-1">{{ formatDateTime(booking.eventDate || '') }}</p>
             </div>
             <div>
               <p class="text-neutral-400">ผู้รับ</p>
@@ -562,6 +632,88 @@ onBeforeUnmount(() => {
         <div class="rounded-2xl border border-[#bbf7d0] bg-white p-5 shadow-[0_12px_26px_-22px_rgba(22,101,52,0.45)]">
           <h2 class="text-sm font-semibold text-neutral-700 mb-2">ที่อยู่จัดส่ง</h2>
           <p class="text-sm text-neutral-600">{{ deliveryAddress }}</p>
+        </div>
+
+        <div v-if="customerNotes.length > 0" class="rounded-2xl border border-[#bbf7d0] bg-white p-5 shadow-[0_12px_26px_-22px_rgba(22,101,52,0.45)]">
+          <h2 class="text-sm font-semibold text-neutral-700 mb-2">หมายเหตุจากลูกค้า</h2>
+          <div class="space-y-1.5 text-sm text-neutral-600">
+            <p v-for="(note, idx) in customerNotes" :key="`${note}-${idx}`" class="whitespace-pre-wrap break-words">{{ note }}</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-[#bbf7d0] bg-white p-5 shadow-[0_12px_26px_-22px_rgba(22,101,52,0.45)]">
+          <h2 class="text-sm font-semibold text-neutral-700 mb-3">รายการสินค้า</h2>
+
+          <div v-if="loadingDetails" class="text-sm text-neutral-400">กำลังโหลดรายการสินค้า...</div>
+
+          <div v-else-if="details.length === 0" class="text-sm text-neutral-400">
+            ไม่พบรายการสินค้าในคำสั่งซื้อนี้
+          </div>
+
+          <div v-else class="overflow-x-auto">
+            <table class="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr class="border-b border-[#ecfdf3] text-xs text-neutral-500">
+                  <th class="py-2 text-left font-medium">รายการ</th>
+                  <th class="py-2 text-left font-medium">รายละเอียด</th>
+                  <th class="py-2 text-left font-medium">ประเภท</th>
+                  <th class="py-2 text-right font-medium">จำนวน</th>
+                  <th class="py-2 text-right font-medium">ราคา/ชิ้น</th>
+                  <th class="py-2 text-right font-medium">รวม</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in details" :key="item.id || `${item.itemName}-${item.quantity}-${item.unitPrice}`" class="border-b border-[#f0fdf4] last:border-b-0">
+                  <td class="py-3 pr-3 font-medium text-neutral-900">{{ item.itemName }}</td>
+                  <td class="py-3 pr-3 text-xs text-neutral-500">
+                    <div class="space-y-0.5">
+                      <p v-if="item.option">ตัวเลือก: {{ item.option }}</p>
+                      <p v-if="item.material">วัสดุ: {{ item.material }}</p>
+                      <p v-if="item.note">หมายเหตุ: {{ item.note }}</p>
+                      <p v-if="!item.option && !item.material && !item.note">-</p>
+                    </div>
+                  </td>
+                  <td class="py-3 pr-3 text-xs">
+                    <span class="inline-flex rounded-full px-2 py-0.5 font-medium" :class="item.isAddon ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
+                      {{ item.isAddon ? 'ค่าเสริม' : 'รวมในแพคเกจ' }}
+                    </span>
+                  </td>
+                  <td class="py-3 text-right text-neutral-700">{{ item.quantity }}</td>
+                  <td class="py-3 text-right text-neutral-700">{{ currency(item.unitPrice) }}</td>
+                  <td class="py-3 text-right font-semibold text-neutral-900">{{ currency(item.subtotal) }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="mt-4 rounded-xl border border-[#ecfdf3] bg-[#f9fefb] p-4">
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center justify-between text-neutral-600">
+                  <span>รวมทุกรายการสินค้า</span>
+                  <span class="font-medium text-neutral-900">{{ currency(detailItemsTotal) }}</span>
+                </div>
+                <div v-if="packageIncludedAmount > 0" class="flex items-center justify-between text-neutral-600">
+                  <span>รวมอยู่ในราคาหลักแล้ว</span>
+                  <span class="font-medium text-neutral-900">{{ currency(packageIncludedAmount) }}</span>
+                </div>
+                <div class="flex items-center justify-between text-neutral-600">
+                  <span>ค่าเสริมจากรายการสินค้า</span>
+                  <span class="font-medium text-neutral-900">{{ currency(detailAddonTotal) }}</span>
+                </div>
+                <div class="flex items-center justify-between text-neutral-600">
+                  <span>ค่าเสริมในใบสั่ง</span>
+                  <span class="font-medium text-neutral-900">{{ currency(orderAddonTotal) }}</span>
+                </div>
+                <div class="flex items-center justify-between border-t border-[#e2fbe8] pt-2" :class="isDetailTotalMatched ? 'text-[#166534]' : 'text-amber-700'">
+                  <span class="font-medium">ส่วนต่าง</span>
+                  <span class="font-semibold">{{ currency(detailTotalDiff) }}</span>
+                </div>
+              </div>
+
+              <p class="mt-2 text-xs" :class="isDetailTotalMatched ? 'text-[#166534]' : 'text-amber-700'">
+                {{ isDetailTotalMatched ? 'ค่าเสริมตรงกัน' : 'ค่าเสริมไม่ตรงกัน โปรดตรวจสอบรายการที่คิดค่าเพิ่ม' }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div class="rounded-2xl border border-[#bbf7d0] bg-white p-5 shadow-[0_12px_26px_-22px_rgba(22,101,52,0.45)]">
@@ -691,7 +843,7 @@ onBeforeUnmount(() => {
       </div>
       <template #actions>
         <div class="w-full flex justify-end">
-          <button type="button" class="rounded-xl border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50" @click="paymentModalRef?.close()">ปิด</button>
+          <button type="button" class="ns-ui-btn ns-ui-btn-secondary" @click="paymentModalRef?.close()">ปิด</button>
         </div>
       </template>
     </BaseModal>
@@ -715,7 +867,7 @@ onBeforeUnmount(() => {
       </div>
       <template #actions>
         <div class="w-full flex items-center justify-end gap-2">
-          <button type="button" class="rounded-xl border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50" @click="uploadSlipModalRef?.close()">ยกเลิก</button>
+          <button type="button" class="ns-ui-btn ns-ui-btn-secondary" @click="uploadSlipModalRef?.close()">ยกเลิก</button>
           <button type="button" :disabled="uploadingSlip" class="rounded-xl bg-[#166534] px-4 py-2 text-sm font-semibold text-white hover:bg-[#14532d] disabled:opacity-60" @click="submitSlip">
             {{ uploadingSlip ? 'กำลังอัปโหลด...' : 'ยืนยันอัปโหลด' }}
           </button>

@@ -294,7 +294,7 @@ const prefixOptions = computed(() => prefixes.value.map(p => ({ label: p.name, v
             <button
               type="submit"
               :disabled="loading"
-              class="w-full rounded-xl bg-[#166534] py-3 text-sm font-semibold text-white hover:bg-[#14532d] active:scale-[0.99] transition-all shadow-[0_8px_20px_-8px_rgba(22,101,52,0.6)] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              class="w-full ns-ui-btn ns-ui-btn-primary active:scale-[0.99] disabled:cursor-not-allowed gap-2"
             >
               <svg v-if="loading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />

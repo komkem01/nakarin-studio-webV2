@@ -15,6 +15,7 @@ export type BookingDetailRow = {
   id: string
   bookingId: string
   itemName: string
+  isAddon: boolean
   option: string | null
   material: string | null
   quantity: number
@@ -140,6 +141,7 @@ const normalizeDetail = (src: unknown): BookingDetailRow => ({
   id: pickString(src, 'id'),
   bookingId: pickString(src, 'booking_id'),
   itemName: pickString(src, 'item_name'),
+  isAddon: Boolean(asRecord(src)['is_addon'] ?? asRecord(src)['isAddon']),
   option: pickNullableString(src, 'option'),
   material: pickNullableString(src, 'material'),
   quantity: pickNumber(src, 'quantity'),
@@ -256,6 +258,7 @@ export const useAdminOrderApi = () => {
   const createBookingDetail = async (payload: {
     bookingId: string
     itemName: string
+    isAddon?: boolean
     option?: string | null
     material?: string | null
     quantity: number
@@ -269,6 +272,7 @@ export const useAdminOrderApi = () => {
   const updateBookingDetail = async (id: string, payload: {
     bookingId: string
     itemName: string
+    isAddon?: boolean
     option?: string | null
     material?: string | null
     quantity: number

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-neutral-50 flex flex-col">
+  <div class="ns-customer-theme min-h-screen bg-slate-50 flex flex-col text-slate-900">
     <slot />
     <BaseToast position="top-end" />
   </div>
