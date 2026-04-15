@@ -349,11 +349,11 @@ onMounted(async () => {
     </div>
 
     <BaseModal ref="createModalRef" id="create-category-modal" title="เพิ่มหมวดหมู่สินค้า" close-label="ปิด">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-white to-cyan-50/40 p-3 md:grid-cols-2 md:p-4">
         <div class="md:col-span-2">
           <label class="text-xs font-semibold text-neutral-600">หมวดหมู่หลัก (ถ้ามี)</label>
           <div class="mt-1">
-            <BaseSelectDropdown v-model="form.parentId" :options="parentCategoryOptions" placeholder="เลือกหมวดหมู่หลัก" />
+            <BaseSelectDropdown v-model="form.parentId" :options="parentCategoryOptions" placeholder="เลือกหมวดหมู่หลัก" class="dropdown-top" />
           </div>
         </div>
 
@@ -385,21 +385,39 @@ onMounted(async () => {
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="createModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="saving" @click="submitCreate">
-            {{ saving ? 'กำลังบันทึก...' : 'บันทึกหมวดหมู่' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="createModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="saving"
+              @click="submitCreate"
+            >
+              <span v-if="saving" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+              {{ saving ? 'กำลังบันทึก...' : 'บันทึกหมวดหมู่' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>
 
     <BaseModal ref="editModalRef" id="edit-category-modal" title="แก้ไขหมวดหมู่สินค้า" close-label="ปิด">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-white to-cyan-50/40 p-3 md:grid-cols-2 md:p-4">
         <div class="md:col-span-2">
           <label class="text-xs font-semibold text-neutral-600">หมวดหมู่หลัก (ถ้ามี)</label>
           <div class="mt-1">
-            <BaseSelectDropdown v-model="editForm.parentId" :options="editParentCategoryOptions" placeholder="เลือกหมวดหมู่หลัก" />
+            <BaseSelectDropdown v-model="editForm.parentId" :options="editParentCategoryOptions" placeholder="เลือกหมวดหมู่หลัก" class="dropdown-top" />
           </div>
         </div>
 
@@ -430,27 +448,79 @@ onMounted(async () => {
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="editModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="savingEdit" @click="submitEdit">
-            {{ savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="editModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="savingEdit"
+              @click="submitEdit"
+            >
+              <span v-if="savingEdit" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+              </svg>
+              {{ savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>
 
     <BaseModal ref="deleteModalRef" id="delete-category-modal" title="ยืนยันการลบหมวดหมู่" close-label="ปิด">
-      <div class="space-y-2 text-sm text-neutral-700">
-        <p>คุณกำลังจะลบหมวดหมู่ <span class="font-semibold text-neutral-900">{{ deletingCategoryName || 'รายการนี้' }}</span></p>
-        <p class="text-red-600">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+      <div class="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-rose-50 p-3.5">
+        <div class="flex items-start gap-3">
+          <div class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600">
+            <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm text-slate-700">
+              คุณกำลังจะลบหมวดหมู่
+              <span class="font-semibold text-slate-900">{{ deletingCategoryName || 'รายการนี้' }}</span>
+            </p>
+            <p class="text-xs text-red-700">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+          </div>
+        </div>
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn rounded-xl bg-red-600 hover:bg-red-700 text-white border-none" :disabled="deleting" @click="submitDelete">
-            {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="deleteModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(220,38,38,.9)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="deleting"
+              @click="submitDelete"
+            >
+              <span v-if="deleting" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M19 6l-1 14H6L5 6" />
+              </svg>
+              {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>

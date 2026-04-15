@@ -5,11 +5,13 @@ type ApiEnvelope<T> = {
 type ProductItem = {
   id: string
   categoryId: string
+  storageId?: string | null
   categoryName: string
   categorySlug: string
   name: string
   slug: string
   sku: string
+  imageUrl?: string | null
   description?: string | null
   price: number
   stockQty: number
@@ -44,6 +46,7 @@ type PackageItem = {
 type PackageRow = {
   id: string
   name: string
+  workType: string
   slug: string
   description?: string | null
   price: number
@@ -87,15 +90,19 @@ const pickBoolean = (source: unknown, camel: string, snake: string, fallback = f
   return fallback
 }
 
-const normalizeProduct = (source: unknown): ProductItem => {
+const normalizeProduct = (source: unknown, apiBase: string): ProductItem => {
+  const storageId = pickString(source, 'storageId', 'storage_id', '').trim()
+  const stableImageUrl = storageId ? `${apiBase.replace(/\/$/, '')}/api/v1/uploads/${storageId}/proxy` : ''
   return {
     id: pickString(source, 'id', 'id'),
     categoryId: pickString(source, 'categoryId', 'category_id'),
+    storageId,
     categoryName: pickString(source, 'categoryName', 'category_name'),
     categorySlug: pickString(source, 'categorySlug', 'category_slug'),
     name: pickString(source, 'name', 'name'),
     slug: pickString(source, 'slug', 'slug'),
     sku: pickString(source, 'sku', 'sku'),
+    imageUrl: stableImageUrl || pickString(source, 'imageUrl', 'image_url', ''),
     description: pickString(source, 'description', 'description', ''),
     price: pickNumber(source, 'price', 'price', 0),
     stockQty: pickNumber(source, 'stockQty', 'stock_qty', 0),
@@ -134,6 +141,7 @@ const normalizePackage = (source: unknown): PackageRow => {
   return {
     id: pickString(source, 'id', 'id'),
     name: pickString(source, 'name', 'name'),
+    workType: pickString(source, 'workType', 'work_type', 'mongkol'),
     slug: pickString(source, 'slug', 'slug'),
     description: pickString(source, 'description', 'description', ''),
     price: pickNumber(source, 'price', 'price', 0),
@@ -144,6 +152,8 @@ const normalizePackage = (source: unknown): PackageRow => {
 }
 
 export const useAdminCatalogApi = () => {
+  const config = useRuntimeConfig()
+  const apiBase = String(config.public.apiBase || '')
   const { authFetch } = useAdminSession()
 
   const listProducts = async (query?: { page?: number, limit?: number, q?: string, categoryId?: string, isActive?: string }) => {
@@ -161,7 +171,7 @@ export const useAdminCatalogApi = () => {
     const itemsRaw = Array.isArray(data.items) ? data.items : []
 
     return {
-      items: itemsRaw.map(normalizeProduct),
+      items: itemsRaw.map(item => normalizeProduct(item, apiBase)),
       total: pickNumber(data, 'total', 'total', 0),
       page: pickNumber(data, 'page', 'page', 1),
       limit: pickNumber(data, 'limit', 'limit', 10),
@@ -170,9 +180,8 @@ export const useAdminCatalogApi = () => {
 
   const createProduct = async (payload: {
     categoryId: string
+    storageId?: string
     name: string
-    slug: string
-    sku: string
     description?: string
     price: number
     stockQty: number
@@ -182,11 +191,12 @@ export const useAdminCatalogApi = () => {
       method: 'POST',
       body: payload,
     })
-    return normalizeProduct(res?.data)
+    return normalizeProduct(res?.data, apiBase)
   }
 
   const updateProduct = async (id: string, payload: {
     categoryId: string
+    storageId?: string
     name: string
     slug: string
     sku: string
@@ -197,6 +207,7 @@ export const useAdminCatalogApi = () => {
   }) => {
     const body = {
       categoryId: payload.categoryId,
+      storageId: payload.storageId || null,
       name: payload.name,
       slug: payload.slug,
       sku: payload.sku,
@@ -209,7 +220,7 @@ export const useAdminCatalogApi = () => {
       method: 'PATCH',
       body,
     })
-    return normalizeProduct(res?.data)
+    return normalizeProduct(res?.data, apiBase)
   }
 
   const deleteProduct = async (id: string) => {
@@ -309,6 +320,7 @@ export const useAdminCatalogApi = () => {
 
   const createPackage = async (payload: {
     name: string
+    workType: string
     slug: string
     description?: string
     price: number
@@ -328,6 +340,7 @@ export const useAdminCatalogApi = () => {
 
   const updatePackage = async (id: string, payload: {
     name: string
+    workType: string
     slug: string
     description?: string
     price: number

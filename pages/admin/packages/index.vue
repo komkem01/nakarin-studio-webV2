@@ -14,6 +14,7 @@ type PackageItemFormRow = {
 type PackageRow = {
   id: string
   name: string
+  workType: string
   slug: string
   description?: string | null
   price: number
@@ -54,6 +55,7 @@ const meta = reactive({
 
 const form = reactive({
   name: '',
+  workType: 'mongkol',
   slug: '',
   description: '',
   price: 0,
@@ -64,6 +66,7 @@ const form = reactive({
 
 const editForm = reactive({
   name: '',
+  workType: 'mongkol',
   slug: '',
   description: '',
   price: 0,
@@ -90,6 +93,18 @@ const statusOptions = [
   { label: 'ใช้งาน', value: 'true' },
   { label: 'ปิดใช้งาน', value: 'false' },
 ]
+const packageWorkTypeOptions = [
+  { label: 'งานมงคล', value: 'mongkol' },
+  { label: 'งานบวช', value: 'buat' },
+  { label: 'งานแต่ง', value: 'wedding' },
+  { label: 'งานอื่นๆ', value: 'other' },
+]
+const packageWorkTypeLabelMap: Record<string, string> = {
+  mongkol: 'งานมงคล',
+  buat: 'งานบวช',
+  wedding: 'งานแต่ง',
+  other: 'งานอื่นๆ',
+}
 const productOptions = computed(() => products.value.map(item => ({ label: `${item.name} (${item.sku})`, value: item.id })))
 const packagePreviewTotal = computed(() => form.items.reduce((sum, item) => sum + Number(item.qty || 0), 0))
 const editPackagePreviewTotal = computed(() => editForm.items.reduce((sum, item) => sum + Number(item.qty || 0), 0))
@@ -174,6 +189,7 @@ const hasDuplicateProduct = (rows: PackageItemFormRow[]) => {
 
 const resetForm = () => {
   form.name = ''
+  form.workType = 'mongkol'
   form.slug = ''
   form.description = ''
   form.price = 0
@@ -230,6 +246,10 @@ const submitCreate = async () => {
     toast.warning('กรุณากรอกชื่อแพคเกจและ slug')
     return
   }
+  if (!form.workType) {
+    toast.warning('กรุณาเลือกประเภทงานของแพคเกจ')
+    return
+  }
   if (form.items.length === 0 || form.items.some(item => !item.productId || item.qty < 1)) {
     toast.warning('กรุณาเลือกรายการสินค้าและจำนวนให้ครบ')
     return
@@ -243,6 +263,7 @@ const submitCreate = async () => {
   try {
     await createPackage({
       name: form.name.trim(),
+      workType: form.workType,
       slug: form.slug.trim(),
       description: form.description.trim(),
       price: Number(form.price || 0),
@@ -267,6 +288,7 @@ const submitCreate = async () => {
 const openEditModal = (item: PackageRow) => {
   editingPackageId.value = item.id
   editForm.name = item.name
+  editForm.workType = item.workType || 'mongkol'
   editForm.slug = item.slug
   editForm.description = item.description || ''
   editForm.price = item.price
@@ -317,6 +339,10 @@ const submitEdit = async () => {
     toast.warning('กรุณากรอกชื่อแพคเกจและ slug')
     return
   }
+  if (!editForm.workType) {
+    toast.warning('กรุณาเลือกประเภทงานของแพคเกจ')
+    return
+  }
   if (editForm.items.length === 0 || editForm.items.some(item => !item.productId || item.qty < 1)) {
     toast.warning('กรุณาเลือกรายการสินค้าและจำนวนให้ครบ')
     return
@@ -330,6 +356,7 @@ const submitEdit = async () => {
   try {
     await updatePackage(editingPackageId.value, {
       name: editForm.name.trim(),
+      workType: editForm.workType,
       slug: editForm.slug.trim(),
       description: editForm.description.trim(),
       price: Number(editForm.price || 0),
@@ -421,6 +448,7 @@ onMounted(async () => {
             <tr>
               <th class="text-left px-4 py-3 font-semibold">แพคเกจ</th>
               <th class="text-right px-4 py-3 font-semibold">ราคา</th>
+              <th class="text-center px-4 py-3 font-semibold">เหมาะกับงาน</th>
               <th class="text-center px-4 py-3 font-semibold">จำนวนรายการ</th>
               <th class="text-right px-4 py-3 font-semibold">ลำดับ</th>
               <th class="text-center px-4 py-3 font-semibold">สถานะ</th>
@@ -429,10 +457,10 @@ onMounted(async () => {
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="px-4 py-8 text-center text-slate-500">กำลังโหลดข้อมูล...</td>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">กำลังโหลดข้อมูล...</td>
             </tr>
             <tr v-else-if="!packages.length">
-              <td colspan="6" class="px-4 py-8 text-center text-slate-500">ยังไม่มีข้อมูลแพคเกจ</td>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">ยังไม่มีข้อมูลแพคเกจ</td>
             </tr>
             <tr v-for="item in packages" :key="item.id" class="border-t border-slate-100 transition-colors hover:bg-slate-50/70">
               <td class="px-4 py-3 align-top">
@@ -441,6 +469,7 @@ onMounted(async () => {
                 <p v-if="item.description" class="mt-1 text-xs text-slate-500">{{ item.description }}</p>
               </td>
               <td class="px-4 py-3 text-right font-semibold text-slate-800">{{ currency(item.price) }}</td>
+              <td class="px-4 py-3 text-center text-slate-700">{{ packageWorkTypeLabelMap[item.workType] || item.workType || '-' }}</td>
               <td class="px-4 py-3 text-center text-slate-700">{{ item.items.length }} รายการ</td>
               <td class="px-4 py-3 text-right text-slate-700">{{ item.sortOrder }}</td>
               <td class="px-4 py-3 text-center">
@@ -492,7 +521,7 @@ onMounted(async () => {
     </div>
 
     <BaseModal ref="createModalRef" id="create-package-modal" title="เพิ่มแพคเกจ" close-label="ปิด">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-white to-cyan-50/40 p-3 md:grid-cols-2 md:p-4">
         <div>
           <label class="text-xs font-semibold text-neutral-600">ชื่อแพคเกจ</label>
           <input v-model="form.name" type="text" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" />
@@ -500,6 +529,13 @@ onMounted(async () => {
         <div>
           <label class="text-xs font-semibold text-neutral-600">Slug</label>
           <input v-model="form.slug" type="text" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" @input="slugTouched = true" />
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-neutral-600">เหมาะกับงาน</label>
+          <div class="mt-1">
+            <BaseSelectDropdown v-model="form.workType" :options="packageWorkTypeOptions" placeholder="เลือกประเภทงาน" class="dropdown-top" />
+          </div>
         </div>
 
         <div>
@@ -550,7 +586,7 @@ onMounted(async () => {
             </div>
             <div class="md:col-span-6">
               <p class="mb-1 text-[11px] font-semibold text-neutral-500">สินค้า</p>
-              <BaseSelectDropdown v-model="item.productId" :options="productOptions" placeholder="เลือกสินค้า" />
+              <BaseSelectDropdown v-model="item.productId" :options="productOptions" placeholder="เลือกสินค้า" class="dropdown-top" />
             </div>
             <div class="md:col-span-2">
               <p class="mb-1 text-[11px] font-semibold text-neutral-500">จำนวน</p>
@@ -574,17 +610,35 @@ onMounted(async () => {
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="createModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="saving" @click="submitCreate">
-            {{ saving ? 'กำลังบันทึก...' : 'บันทึกแพคเกจ' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="createModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="saving"
+              @click="submitCreate"
+            >
+              <span v-if="saving" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+              {{ saving ? 'กำลังบันทึก...' : 'บันทึกแพคเกจ' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>
 
     <BaseModal ref="editModalRef" id="edit-package-modal" title="แก้ไขแพคเกจ" close-label="ปิด">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-white to-cyan-50/40 p-3 md:grid-cols-2 md:p-4">
         <div>
           <label class="text-xs font-semibold text-neutral-600">ชื่อแพคเกจ</label>
           <input v-model="editForm.name" type="text" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" />
@@ -592,6 +646,13 @@ onMounted(async () => {
         <div>
           <label class="text-xs font-semibold text-neutral-600">Slug</label>
           <input v-model="editForm.slug" type="text" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" @input="editSlugTouched = true" />
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-neutral-600">เหมาะกับงาน</label>
+          <div class="mt-1">
+            <BaseSelectDropdown v-model="editForm.workType" :options="packageWorkTypeOptions" placeholder="เลือกประเภทงาน" class="dropdown-top" />
+          </div>
         </div>
 
         <div>
@@ -642,7 +703,7 @@ onMounted(async () => {
             </div>
             <div class="md:col-span-6">
               <p class="mb-1 text-[11px] font-semibold text-neutral-500">สินค้า</p>
-              <BaseSelectDropdown v-model="item.productId" :options="productOptions" placeholder="เลือกสินค้า" />
+              <BaseSelectDropdown v-model="item.productId" :options="productOptions" placeholder="เลือกสินค้า" class="dropdown-top" />
             </div>
             <div class="md:col-span-2">
               <p class="mb-1 text-[11px] font-semibold text-neutral-500">เลขช่องที่ 1: จำนวน</p>
@@ -666,27 +727,79 @@ onMounted(async () => {
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="editModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="savingEdit" @click="submitEdit">
-            {{ savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="editModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="savingEdit"
+              @click="submitEdit"
+            >
+              <span v-if="savingEdit" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+              </svg>
+              {{ savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>
 
     <BaseModal ref="deleteModalRef" id="delete-package-modal" title="ยืนยันการลบแพคเกจ" close-label="ปิด">
-      <div class="space-y-2 text-sm text-neutral-700">
-        <p>คุณกำลังจะลบแพคเกจ <span class="font-semibold text-neutral-900">{{ deletingPackageName || 'รายการนี้' }}</span></p>
-        <p class="text-red-600">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+      <div class="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-rose-50 p-3.5">
+        <div class="flex items-start gap-3">
+          <div class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm text-slate-700">
+              คุณกำลังจะลบแพคเกจ
+              <span class="font-semibold text-slate-900">{{ deletingPackageName || 'รายการนี้' }}</span>
+            </p>
+            <p class="text-xs text-red-700">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+          </div>
+        </div>
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn rounded-xl bg-red-600 hover:bg-red-700 text-white border-none" :disabled="deleting" @click="submitDelete">
-            {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="deleteModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(220,38,38,.9)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="deleting"
+              @click="submitDelete"
+            >
+              <span v-if="deleting" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M19 6l-1 14H6L5 6" />
+              </svg>
+              {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>

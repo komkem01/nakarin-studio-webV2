@@ -302,6 +302,7 @@ onMounted(load)
           <BaseSelectDropdown
             v-model="createForm.genderId"
             :options="[{ label: '-- เลือกเพศ --', value: '' }, ...genders.map(g => ({ label: g.name, value: g.id }))]"
+            class="dropdown-top"
             @update:model-value="createForm.prefixId = ''"
           />
         </div>
@@ -310,6 +311,7 @@ onMounted(load)
           <BaseSelectDropdown
             v-model="createForm.prefixId"
             :options="[{ label: '-- เลือกคำนำหน้า --', value: '' }, ...filteredPrefixesCreate.map(p => ({ label: p.name, value: p.id }))]"
+            class="dropdown-top"
             :disabled="!createForm.genderId"
           />
         </div>
@@ -353,6 +355,7 @@ onMounted(load)
           <BaseSelectDropdown
             v-model="editForm.genderId"
             :options="[{ label: '-- เลือกเพศ --', value: '' }, ...genders.map(g => ({ label: g.name, value: g.id }))]"
+            class="dropdown-top"
             @update:model-value="editForm.prefixId = ''"
           />
         </div>
@@ -361,6 +364,7 @@ onMounted(load)
           <BaseSelectDropdown
             v-model="editForm.prefixId"
             :options="[{ label: '-- เลือกคำนำหน้า --', value: '' }, ...filteredPrefixes.map(p => ({ label: p.name, value: p.id }))]"
+            class="dropdown-top"
             :disabled="!editForm.genderId"
           />
         </div>

@@ -210,7 +210,10 @@ onMounted(load)
                   {{ paymentConfig[order.payment]?.label ?? order.payment }}
                 </span>
               </td>
-              <td class="max-w-[160px] truncate px-4 py-3 text-slate-700">{{ order.packageName ?? '-' }}</td>
+              <td class="max-w-[220px] px-4 py-3 text-slate-700">
+                <p class="truncate">{{ order.packageName ?? '-' }}</p>
+                <p v-if="order.baiseeStyle" class="truncate text-xs text-slate-500 mt-0.5">สไตล์: {{ order.baiseeStyle }}</p>
+              </td>
               <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ formatDate(order.eventDate) }}</td>
               <td class="px-4 py-3 text-right font-medium text-slate-900">฿{{ formatPrice(order.totalPrice) }}</td>
               <td class="px-4 py-3 text-right" :class="order.balanceAmount > 0 ? 'text-red-600 font-semibold' : 'text-emerald-600 font-medium'">
@@ -252,7 +255,7 @@ onMounted(load)
         <p class="text-xs text-slate-500">
           หน้า {{ meta.page }} / {{ meta.totalPages }} ({{ meta.total }} รายการ)
         </p>
-        <BasePagination :current="meta.page" :total="meta.totalPages" @change="onPageChange" />
+        <BasePagination :current-page="meta.page" :total-pages="meta.totalPages" @change="onPageChange" />
       </div>
     </div>
 

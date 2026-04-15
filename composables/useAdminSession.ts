@@ -35,16 +35,21 @@ export const useAdminSession = () => {
   const config = useRuntimeConfig()
   const refreshing = ref<Promise<string> | null>(null)
 
+  const isRememberPreferred = () => {
+    if (!import.meta.client) return false
+    return !!localStorage.getItem('ns_admin_auth')
+  }
+
   const getCookieValue = (name: string) => {
     if (!import.meta.client) return ''
     const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`))
     return match ? decodeURIComponent(match[1]) : ''
   }
 
-  const setCookie = (name: string, value: string, maxAge?: number) => {
+  const setCookie = (name: string, value: string, maxAge?: number, persistent = true) => {
     if (!import.meta.client) return
     const safeValue = encodeURIComponent(value)
-    if (maxAge && Number.isFinite(maxAge) && maxAge > 0) {
+    if (persistent && maxAge && Number.isFinite(maxAge) && maxAge > 0) {
       document.cookie = `${name}=${safeValue}; Path=/; Max-Age=${Math.floor(maxAge)}; SameSite=Lax`
       return
     }
@@ -87,8 +92,9 @@ export const useAdminSession = () => {
         throw new Error('invalid-refresh-response')
       }
 
-      setCookie('access_token', nextAccessToken, nextAccessExp)
-      setCookie('refresh_token', nextRefreshToken, nextRefreshExp)
+      const remember = isRememberPreferred()
+      setCookie('access_token', nextAccessToken, nextAccessExp, remember)
+      setCookie('refresh_token', nextRefreshToken, nextRefreshExp, remember)
       return nextAccessToken
     })()
 

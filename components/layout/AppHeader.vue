@@ -8,12 +8,14 @@ const desktopNotifRef = ref<HTMLElement | null>(null)
 const mobileNotifRef = ref<HTMLElement | null>(null)
 const desktopProfileRef = ref<HTMLElement | null>(null)
 const mobileProfileRef = ref<HTMLElement | null>(null)
-const config = useRuntimeConfig()
+const { authFetch, getSession } = useCustomerAuth()
 const logoutConfirmModalRef = ref<InstanceType<typeof BaseModal> | null>(null)
+let notifPollTimer: number | null = null
 
-type NotificationItem = { id: string; title: string; time: string; to?: string }
+type NotificationItem = { id: string; title: string; time: string; to?: string; createdAt: string; isRead: boolean }
 
 const notifications = ref<NotificationItem[]>([])
+const unreadCountServer = ref(0)
 
 const navLinks = [
   { label: 'หน้าแรก', to: '/' },
@@ -27,8 +29,8 @@ type StoredSession = { member?: { id?: string; firstName?: string; lastName?: st
 const session = computed<StoredSession>(() => {
   if (!import.meta.client) return {}
   try {
-    const raw = localStorage.getItem('ns_auth') || sessionStorage.getItem('ns_auth')
-    return raw ? JSON.parse(raw) : {}
+    const current = getSession()
+    return current ? current as StoredSession : {}
   } catch {
     return {}
   }
@@ -40,7 +42,39 @@ const memberName = computed(() => {
   return m ? `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim() : ''
 })
 
-const hasNotification = computed(() => notifications.value.length > 0)
+const unreadCount = computed(() => {
+  if (unreadCountServer.value > 0) return unreadCountServer.value
+  return notifications.value.filter(item => !item.isRead).length
+})
+
+const hasNotification = computed(() => unreadCount.value > 0)
+
+const asRecord = (value: unknown) => (value && typeof value === 'object' ? value as Record<string, unknown> : {})
+const pickString = (source: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === 'string') return value
+  }
+  return ''
+}
+const pickBool = (source: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'string') {
+      if (value.toLowerCase() === 'true') return true
+      if (value.toLowerCase() === 'false') return false
+    }
+  }
+  return false
+}
+const pickNum = (source: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = Number(source[key])
+    if (Number.isFinite(value)) return value
+  }
+  return 0
+}
 
 const toggleDesktopNotif = () => {
   isDesktopNotifOpen.value = !isDesktopNotifOpen.value
@@ -75,22 +109,9 @@ const toggleMobileProfile = () => {
 }
 
 const clearNotifications = () => {
-  notifications.value = []
+  markAllRead()
   isDesktopNotifOpen.value = false
   isMobileNotifOpen.value = false
-}
-
-const statusText: Record<string, string> = {
-  pending: 'รอยืนยัน',
-  confirmed: 'ยืนยันแล้ว',
-  processing: 'กำลังดำเนินการ',
-  in_production: 'กำลังผลิต',
-  ready: 'พร้อมส่ง',
-  delivered: 'จัดส่งแล้ว',
-  completed: 'เสร็จสิ้น',
-  canceled: 'ยกเลิก',
-  cancelled: 'ยกเลิก',
-  draft: 'รอดำเนินการ',
 }
 
 const formatRelative = (iso: string | null | undefined) => {
@@ -109,31 +130,60 @@ const loadOrderNotifications = async () => {
   const memberId = session.value?.member?.id
   if (!memberId) {
     notifications.value = []
+    unreadCountServer.value = 0
     return
   }
 
   try {
-    const res = await $fetch<any>('/api/v1/bookings', {
-      baseURL: config.public.apiBase,
-      query: { memberId, size: 5 },
+    const res = await authFetch<{ data?: { items?: unknown[], meta?: Record<string, unknown> } }>('/api/v1/notifications', {
+      query: {
+        targetType: 'customer',
+        page: 1,
+        size: 20,
+        sort: 'createdAt',
+        order: 'desc',
+      },
     })
-    const rows: unknown[] = Array.isArray(res?.data?.items) ? res.data.items : Array.isArray(res?.data) ? res.data : []
-    notifications.value = rows.slice(0, 3).map((row, idx) => {
-      const r = row && typeof row === 'object' ? (row as Record<string, unknown>) : {}
-      const id = typeof r.id === 'string' ? r.id : ''
-      const bookingNo = typeof r.booking_no === 'string' ? r.booking_no : '-'
-      const status = typeof r.status === 'string' ? r.status : 'pending'
-      const updatedAt = typeof r.status_updated_at === 'string' ? r.status_updated_at : null
+    const rows = Array.isArray(res?.data?.items) ? res.data.items : []
+    const meta = asRecord(res?.data?.meta)
+    unreadCountServer.value = Math.max(0, pickNum(meta, 'unread', 'Unread'))
+    notifications.value = rows.slice(0, 20).map((raw, idx) => {
+      const r = asRecord(raw)
+      const id = pickString(r, 'id')
+      const title = pickString(r, 'title') || 'การแจ้งเตือนใหม่'
+      const message = pickString(r, 'message')
+      const bookingId = pickString(r, 'booking_id', 'bookingId')
+      const createdAt = pickString(r, 'created_at', 'createdAt') || new Date().toISOString()
       return {
         id: id || `n-${idx}`,
-        title: `ออเดอร์ #${bookingNo} : ${statusText[status] || status}`,
-        time: formatRelative(updatedAt),
-        to: id ? `/orders/${id}` : '/orders',
+        title: message ? `${title} ${message}`.trim() : title,
+        time: formatRelative(createdAt),
+        to: bookingId ? `/orders/${bookingId}` : '/orders',
+        createdAt,
+        isRead: pickBool(r, 'is_read', 'isRead'),
       }
     })
   } catch {
     notifications.value = []
+    unreadCountServer.value = 0
   }
+}
+
+const markRead = async (id: string) => {
+  try {
+    await authFetch('/api/v1/notifications/' + id + '/read', { method: 'PATCH' })
+    const target = notifications.value.find(item => item.id === id)
+    if (target) target.isRead = true
+    if (unreadCountServer.value > 0) unreadCountServer.value -= 1
+  } catch {
+    // ignore
+  }
+}
+
+const markAllRead = async () => {
+  const pending = notifications.value.filter(item => !item.isRead)
+  if (!pending.length) return
+  await Promise.allSettled(pending.map(item => markRead(item.id)))
 }
 
 const closeNotificationMenus = () => {
@@ -165,10 +215,15 @@ const requestLogout = () => {
 onMounted(() => {
   document.addEventListener('click', onClickOutside)
   loadOrderNotifications()
+  notifPollTimer = window.setInterval(loadOrderNotifications, 60000)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutside)
+  if (notifPollTimer !== null) {
+    window.clearInterval(notifPollTimer)
+    notifPollTimer = null
+  }
 })
 
 const logout = () => {
@@ -179,6 +234,7 @@ const logout = () => {
   isDesktopProfileOpen.value = false
   isMobileProfileOpen.value = false
   localStorage.removeItem('ns_auth')
+  localStorage.removeItem('ns_customer_remember_me')
   sessionStorage.removeItem('ns_auth')
   document.cookie = 'customer_access_token=; Path=/; Max-Age=0; SameSite=Lax'
   document.cookie = 'customer_refresh_token=; Path=/; Max-Age=0; SameSite=Lax'
@@ -230,7 +286,9 @@ const logout = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-[18px] h-[18px]">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                 </svg>
-                <span v-if="hasNotification" class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
+                <span v-if="hasNotification" class="absolute -top-1 -right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white border border-white">
+                  {{ unreadCount > 9 ? '9+' : unreadCount }}
+                </span>
               </button>
 
               <div
@@ -247,7 +305,7 @@ const logout = () => {
                       v-if="item.to"
                       :to="item.to"
                       class="block rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2 hover:bg-white transition-colors"
-                      @click="closeNotificationMenus"
+                      @click="markRead(item.id); closeNotificationMenus()"
                     >
                       <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
                       <p class="text-[11px] text-neutral-500 mt-1">{{ item.time }}</p>
@@ -286,8 +344,9 @@ const logout = () => {
               </div>
             </div>
             <!-- ออกจากระบบ -->
+            <span class="hidden md:inline-block text-neutral-300 text-lg leading-none select-none" aria-hidden="true">|</span>
             <button
-              class="hidden md:flex items-center justify-center w-9 h-9 rounded-xl border border-neutral-200 text-neutral-400 hover:text-red-600 hover:border-red-200 transition-colors"
+              class="hidden md:flex items-center justify-center w-9 h-9 rounded-xl border border-red-200 text-red-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors"
               title="ออกจากระบบ"
               @click="requestLogout"
             >
@@ -349,7 +408,9 @@ const logout = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-[18px] h-[18px]">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                   </svg>
-                  <span v-if="hasNotification" class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
+                  <span v-if="hasNotification" class="absolute -top-1 -right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white border border-white">
+                    {{ unreadCount > 9 ? '9+' : unreadCount }}
+                  </span>
                 </button>
 
                 <div
@@ -366,7 +427,7 @@ const logout = () => {
                         v-if="item.to"
                         :to="item.to"
                         class="block rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2 hover:bg-white transition-colors"
-                        @click="closeNotificationMenus"
+                        @click="markRead(item.id); closeNotificationMenus()"
                       >
                         <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
                         <p class="text-[11px] text-neutral-500 mt-1">{{ item.time }}</p>
@@ -405,8 +466,9 @@ const logout = () => {
                 </div>
               </div>
 
+              <span class="text-neutral-300 text-lg leading-none select-none" aria-hidden="true">|</span>
               <button
-                class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-neutral-200 text-neutral-400 hover:text-red-600 hover:border-red-200 transition-colors"
+                class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-red-200 text-red-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors"
                 title="ออกจากระบบ"
                 @click="requestLogout"
               >

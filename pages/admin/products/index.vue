@@ -8,23 +8,32 @@ useSeoMeta({ title: 'จัดการสินค้า - Nakarin Studio Admin
 type ProductRow = {
   id: string
   categoryId: string
+  storageId?: string | null
   categoryName: string
   name: string
   slug: string
   sku: string
+  imageUrl?: string | null
   description?: string | null
   price: number
   stockQty: number
   isActive: boolean
 }
 
-const { listProducts, listCategories, createProduct, updateProduct, deleteProduct, checkProductSkuDuplicate } = useAdminCatalogApi()
+const { listProducts, listCategories, createProduct, updateProduct, deleteProduct } = useAdminCatalogApi()
+const { authFetch } = useAdminSession()
 const toast = useAppToast()
+const runtimeConfig = useRuntimeConfig()
+const apiBase = String(runtimeConfig.public.apiBase || '').replace(/\/$/, '')
 
 const loading = ref(true)
 const saving = ref(false)
 const savingEdit = ref(false)
 const deleting = ref(false)
+const uploadingCreateImage = ref(false)
+const uploadingEditImage = ref(false)
+const createSelectedFileName = ref('')
+const editSelectedFileName = ref('')
 
 const products = ref<ProductRow[]>([])
 const categories = ref<Array<{ id: string, name: string }>>([])
@@ -45,8 +54,9 @@ const meta = reactive({
 
 const form = reactive({
   categoryId: '',
+  storageId: '',
   name: '',
-  slug: '',
+  imageUrl: '',
   sku: '',
   description: '',
   price: 0,
@@ -56,9 +66,11 @@ const form = reactive({
 
 const editForm = reactive({
   categoryId: '',
+  storageId: '',
   name: '',
   slug: '',
   sku: '',
+  imageUrl: '',
   description: '',
   price: 0,
   stockQty: 0,
@@ -69,14 +81,9 @@ const createModalRef = ref<InstanceType<typeof BaseModalComponent> | null>(null)
 const editModalRef = ref<InstanceType<typeof BaseModalComponent> | null>(null)
 const deleteModalRef = ref<InstanceType<typeof BaseModalComponent> | null>(null)
 
-const slugTouched = ref(false)
 const editSlugTouched = ref(false)
 const editingProductId = ref('')
 const deletingProductId = ref('')
-const skuCheckingCreate = ref(false)
-const skuCheckingEdit = ref(false)
-const skuDuplicateCreate = ref(false)
-const skuDuplicateEdit = ref(false)
 
 const totalPages = computed(() => Math.max(1, Math.ceil((meta.total || 0) / (meta.limit || 10))))
 const categoryNameMap = computed(() => Object.fromEntries(categories.value.map(item => [item.id, item.name])))
@@ -91,6 +98,36 @@ const statusOptions = [
   { label: 'ปิดใช้งาน', value: 'false' },
 ]
 const productCategoryOptions = computed(() => categories.value.map(cat => ({ label: cat.name, value: cat.id })))
+
+const buildUploadProxyUrl = (storageId: string) => `${apiBase}/api/v1/uploads/${storageId}/proxy`
+
+const parseSignedUrlExpiryAt = (url: string): number | null => {
+  try {
+    const parsed = new URL(url)
+    const issuedAt = parsed.searchParams.get('X-Amz-Date')
+    const expiresIn = Number(parsed.searchParams.get('X-Amz-Expires') || '0')
+    if (!issuedAt || !Number.isFinite(expiresIn) || expiresIn <= 0) return null
+    const normalized = issuedAt.replace(/(\d{8})T(\d{6})Z/, '$1T$2Z')
+    const issuedMs = Date.parse(normalized)
+    if (!Number.isFinite(issuedMs)) return null
+    return issuedMs + expiresIn * 1000
+  } catch {
+    return null
+  }
+}
+
+const shouldRefreshSignedUrl = (url: string, beforeMs = 5 * 60 * 1000) => {
+  const expiresAt = parseSignedUrlExpiryAt(url)
+  if (!expiresAt) return false
+  return Date.now() + beforeMs >= expiresAt
+}
+
+const refreshSignedUrlByStorageId = async (storageId: string) => {
+  const res = await authFetch<{ data?: { url?: string } }>(`/api/v1/uploads/${storageId}`)
+  return String(res?.data?.url || '').trim()
+}
+
+let signedUrlRefreshTimer: ReturnType<typeof setInterval> | null = null
 
 const CATEGORY_CACHE_KEY = 'admin:products:categories:v1'
 const PRODUCTS_CACHE_PREFIX = 'admin:products:list:v1:'
@@ -133,62 +170,13 @@ const toSlug = (value: string) =>
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
 
-watch(() => form.name, (next) => {
-  if (!slugTouched.value) form.slug = toSlug(next)
-})
-
 watch(() => editForm.name, (next) => {
   if (!editSlugTouched.value) editForm.slug = toSlug(next)
 })
 
-const regenerateCreateSlug = () => {
-  form.slug = toSlug(form.name)
-  slugTouched.value = false
-}
-
 const regenerateEditSlug = () => {
   editForm.slug = toSlug(editForm.name)
   editSlugTouched.value = false
-}
-
-const checkCreateSku = async () => {
-  const sku = form.sku.trim()
-  if (!sku) {
-    skuDuplicateCreate.value = false
-    skuCheckingCreate.value = false
-    return false
-  }
-
-  skuCheckingCreate.value = true
-  try {
-    skuDuplicateCreate.value = await checkProductSkuDuplicate(sku)
-    return skuDuplicateCreate.value
-  } catch {
-    skuDuplicateCreate.value = false
-    return false
-  } finally {
-    skuCheckingCreate.value = false
-  }
-}
-
-const checkEditSku = async () => {
-  const sku = editForm.sku.trim()
-  if (!sku) {
-    skuDuplicateEdit.value = false
-    skuCheckingEdit.value = false
-    return false
-  }
-
-  skuCheckingEdit.value = true
-  try {
-    skuDuplicateEdit.value = await checkProductSkuDuplicate(sku, editingProductId.value || undefined)
-    return skuDuplicateEdit.value
-  } catch {
-    skuDuplicateEdit.value = false
-    return false
-  } finally {
-    skuCheckingEdit.value = false
-  }
 }
 
 const fetchCategories = async () => {
@@ -265,13 +253,14 @@ const nextPage = async () => {
 }
 
 const openCreateModal = () => {
-  slugTouched.value = false
   createModalRef.value?.open()
 }
 
 const resetForm = () => {
   form.name = ''
-  form.slug = ''
+  form.storageId = ''
+  form.imageUrl = ''
+  createSelectedFileName.value = ''
   form.sku = ''
   form.description = ''
   form.price = 0
@@ -281,13 +270,8 @@ const resetForm = () => {
 }
 
 const submitCreate = async () => {
-  if (!form.categoryId || !form.name.trim() || !form.slug.trim() || !form.sku.trim()) {
+  if (!form.categoryId || !form.name.trim()) {
     toast.warning('กรุณากรอกข้อมูลสินค้าให้ครบ')
-    return
-  }
-  const isCreateSkuDuplicate = await checkCreateSku()
-  if (isCreateSkuDuplicate) {
-    toast.warning('SKU นี้ถูกใช้งานแล้ว กรุณาเปลี่ยนใหม่')
     return
   }
 
@@ -295,9 +279,8 @@ const submitCreate = async () => {
   try {
     await createProduct({
       categoryId: form.categoryId,
+      storageId: form.storageId.trim() || undefined,
       name: form.name.trim(),
-      slug: form.slug.trim(),
-      sku: form.sku.trim(),
       description: form.description.trim(),
       price: Number(form.price || 0),
       stockQty: Number(form.stockQty || 0),
@@ -318,28 +301,24 @@ const submitCreate = async () => {
 const openEditModal = (item: ProductRow) => {
   editingProductId.value = item.id
   editForm.categoryId = item.categoryId || categories.value[0]?.id || ''
+  editForm.storageId = item.storageId || ''
   editForm.name = item.name
   editForm.slug = item.slug
   editForm.sku = item.sku
+  editForm.imageUrl = item.imageUrl || ''
   editForm.description = item.description || ''
   editForm.price = item.price
   editForm.stockQty = item.stockQty
   editForm.isActive = item.isActive
+  editSelectedFileName.value = ''
   editSlugTouched.value = false
-  skuDuplicateEdit.value = false
-  skuCheckingEdit.value = false
   editModalRef.value?.open()
 }
 
 const submitEdit = async () => {
   if (!editingProductId.value) return
-  if (!editForm.categoryId || !editForm.name.trim() || !editForm.slug.trim() || !editForm.sku.trim()) {
+  if (!editForm.categoryId || !editForm.name.trim() || !editForm.slug.trim()) {
     toast.warning('กรุณากรอกข้อมูลสินค้าให้ครบ')
-    return
-  }
-  const isEditSkuDuplicate = await checkEditSku()
-  if (isEditSkuDuplicate) {
-    toast.warning('SKU นี้ถูกใช้งานแล้ว กรุณาเปลี่ยนใหม่')
     return
   }
 
@@ -351,9 +330,11 @@ const submitEdit = async () => {
     ...products.value[index],
     categoryId: editForm.categoryId,
     categoryName: categoryNameMap.value[editForm.categoryId] || products.value[index].categoryName,
+    storageId: editForm.storageId.trim(),
     name: editForm.name.trim(),
     slug: editForm.slug.trim(),
     sku: editForm.sku.trim(),
+    imageUrl: editForm.imageUrl.trim(),
     description: editForm.description.trim(),
     price: Number(editForm.price || 0),
     stockQty: Number(editForm.stockQty || 0),
@@ -365,6 +346,7 @@ const submitEdit = async () => {
   try {
     const updated = await updateProduct(editingProductId.value, {
       categoryId: optimistic.categoryId,
+      storageId: optimistic.storageId || undefined,
       name: optimistic.name,
       slug: optimistic.slug,
       sku: optimistic.sku,
@@ -387,6 +369,61 @@ const submitEdit = async () => {
 const requestDelete = (id: string) => {
   deletingProductId.value = id
   deleteModalRef.value?.open()
+}
+
+const uploadProductImage = async (file: File, target: 'create' | 'edit') => {
+  const isCreate = target === 'create'
+  if (!file) return
+
+  const uploadState = isCreate ? uploadingCreateImage : uploadingEditImage
+  uploadState.value = true
+
+  try {
+    const fd = new FormData()
+    fd.append('target', 'product_image')
+    fd.append('file', file)
+
+    const res = await authFetch<{ data?: { id?: string, url?: string } }>('/api/v1/uploads', {
+      method: 'POST',
+      body: fd,
+    })
+
+    const storageId = String(res?.data?.id || '').trim()
+    const url = String(res?.data?.url || '').trim()
+    if (!storageId || !url) throw new Error('missing-upload-data')
+
+    const stableUrl = buildUploadProxyUrl(storageId)
+    if (isCreate) {
+      form.storageId = storageId
+      form.imageUrl = stableUrl || url
+    } else {
+      editForm.storageId = storageId
+      editForm.imageUrl = stableUrl || url
+    }
+    toast.success('อัปโหลดรูปสินค้าเรียบร้อย')
+  } catch {
+    toast.error('ไม่สามารถอัปโหลดรูปสินค้าได้')
+  } finally {
+    uploadState.value = false
+  }
+}
+
+const onCreateImageChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  createSelectedFileName.value = file.name
+  await uploadProductImage(file, 'create')
+  input.value = ''
+}
+
+const onEditImageChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  editSelectedFileName.value = file.name
+  await uploadProductImage(file, 'edit')
+  input.value = ''
 }
 
 const submitDelete = async () => {
@@ -418,6 +455,47 @@ const submitDelete = async () => {
 
 onMounted(async () => {
   await Promise.all([fetchCategories(), fetchProducts()])
+
+  signedUrlRefreshTimer = setInterval(async () => {
+    const tasks: Array<Promise<void>> = []
+
+    for (const item of products.value) {
+      const storageId = String(item.storageId || '').trim()
+      const url = String(item.imageUrl || '').trim()
+      if (!storageId || !url || !shouldRefreshSignedUrl(url)) continue
+      tasks.push((async () => {
+        const next = await refreshSignedUrlByStorageId(storageId)
+        if (next) item.imageUrl = next
+      })())
+    }
+
+    const createStorageId = String(form.storageId || '').trim()
+    const createUrl = String(form.imageUrl || '').trim()
+    if (createStorageId && createUrl && shouldRefreshSignedUrl(createUrl)) {
+      tasks.push((async () => {
+        const next = await refreshSignedUrlByStorageId(createStorageId)
+        if (next) form.imageUrl = next
+      })())
+    }
+
+    const editStorageId = String(editForm.storageId || '').trim()
+    const editUrl = String(editForm.imageUrl || '').trim()
+    if (editStorageId && editUrl && shouldRefreshSignedUrl(editUrl)) {
+      tasks.push((async () => {
+        const next = await refreshSignedUrlByStorageId(editStorageId)
+        if (next) editForm.imageUrl = next
+      })())
+    }
+
+    if (tasks.length > 0) {
+      await Promise.allSettled(tasks)
+    }
+  }, 60 * 1000)
+})
+
+onUnmounted(() => {
+  if (signedUrlRefreshTimer) clearInterval(signedUrlRefreshTimer)
+  signedUrlRefreshTimer = null
 })
 </script>
 
@@ -482,7 +560,13 @@ onMounted(async () => {
             </tr>
             <tr v-for="item in products" :key="item.id" class="border-t border-slate-100 transition-colors hover:bg-slate-50/70">
               <td class="px-4 py-3">
-                <p class="font-semibold text-slate-800">{{ item.name }}</p>
+                <div class="flex items-center gap-3">
+                  <div class="h-10 w-10 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                    <img v-if="item.imageUrl" :src="item.imageUrl" alt="product" class="h-full w-full object-cover" />
+                    <div v-else class="flex h-full w-full items-center justify-center text-[11px] font-semibold text-slate-500">ไม่มีรูป</div>
+                  </div>
+                  <p class="font-semibold text-slate-800">{{ item.name }}</p>
+                </div>
               </td>
               <td class="px-4 py-3 text-slate-600">{{ item.categoryName }}</td>
               <td class="px-4 py-3 text-slate-600">{{ item.sku }}</td>
@@ -538,11 +622,11 @@ onMounted(async () => {
     </div>
 
     <BaseModal ref="createModalRef" id="create-product-modal" title="เพิ่มสินค้าใหม่" close-label="ปิด">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-white to-cyan-50/40 p-3 md:grid-cols-2 md:p-4">
         <div class="md:col-span-2">
           <label class="text-xs font-semibold text-neutral-600">หมวดหมู่</label>
           <div class="mt-1">
-            <BaseSelectDropdown v-model="form.categoryId" :options="productCategoryOptions" placeholder="เลือกหมวดหมู่สินค้า" />
+            <BaseSelectDropdown v-model="form.categoryId" :options="productCategoryOptions" placeholder="เลือกหมวดหมู่สินค้า" class="dropdown-top" />
           </div>
         </div>
 
@@ -552,20 +636,17 @@ onMounted(async () => {
         </div>
         <div>
           <label class="text-xs font-semibold text-neutral-600">Slug</label>
-          <div class="mt-1 flex items-center gap-2">
-            <input v-model="form.slug" type="text" class="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" @input="slugTouched = true" />
-            <button type="button" class="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 whitespace-nowrap" @click="regenerateCreateSlug">
-              สร้างใหม่
-            </button>
+          <div class="mt-1 w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-600">
+            ระบบสร้างอัตโนมัติจากชื่อสินค้า
           </div>
         </div>
 
         <div>
           <label class="text-xs font-semibold text-neutral-600">SKU</label>
-          <input v-model="form.sku" type="text" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" @blur="checkCreateSku" />
-          <p v-if="skuCheckingCreate" class="mt-1 text-xs text-neutral-500">กำลังตรวจสอบ SKU...</p>
-          <p v-else-if="skuDuplicateCreate" class="mt-1 text-xs text-red-600">SKU นี้ถูกใช้งานแล้ว</p>
-          <p v-else-if="form.sku.trim()" class="mt-1 text-xs text-green-700">SKU นี้ใช้งานได้</p>
+          <div class="mt-1 w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-600">
+            ระบบสร้างอัตโนมัติ (รูปแบบ NK-xxxxxx)
+          </div>
+          <p class="mt-1 text-xs text-neutral-500">SKU จะถูกสร้างโดยระบบเมื่อบันทึกสินค้า</p>
         </div>
         <div>
           <label class="text-xs font-semibold text-neutral-600">ราคา</label>
@@ -587,24 +668,104 @@ onMounted(async () => {
           <label class="text-xs font-semibold text-neutral-600">รายละเอียด</label>
           <textarea v-model="form.description" rows="3" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" />
         </div>
+
+        <fieldset class="md:col-span-2 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 via-white to-lime-50/40 p-3.5 md:p-4">
+          <legend class="px-2 text-xs font-bold uppercase tracking-[0.08em] text-emerald-700">รูปสินค้า</legend>
+
+          <div class="space-y-3">
+            <div class="rounded-xl border border-dashed border-emerald-300/90 bg-white/90 p-3">
+              <div class="mb-2 flex items-center gap-2 text-emerald-700">
+                <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="M7 10l5-5 5 5" />
+                    <path d="M12 5v12" />
+                  </svg>
+                </span>
+                <p class="text-xs font-semibold">อัปโหลดภาพสินค้าใหม่</p>
+              </div>
+
+              <input
+                id="create-product-image-input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                class="sr-only"
+                :disabled="uploadingCreateImage"
+                @change="onCreateImageChange"
+              />
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label
+                  for="create-product-image-input"
+                  class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                  :class="uploadingCreateImage ? 'pointer-events-none opacity-60' : ''"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="M7 10l5-5 5 5" />
+                    <path d="M12 5v12" />
+                  </svg>
+                  เลือกรูปสินค้า
+                </label>
+                <p class="truncate rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 sm:flex-1">
+                  {{ createSelectedFileName || 'ยังไม่ได้เลือกไฟล์' }}
+                </p>
+              </div>
+              <p class="mt-2 text-xs text-neutral-600">รองรับ PNG, JPG, WEBP ขนาดสูงสุด 10MB</p>
+
+              <div v-if="uploadingCreateImage" class="mt-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                <span class="loading loading-spinner loading-xs" />
+                กำลังอัปโหลดรูป...
+              </div>
+            </div>
+
+            <div v-if="form.imageUrl" class="overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-sm">
+              <div class="flex items-center justify-between border-b border-emerald-100 bg-emerald-50/70 px-3 py-2">
+                <p class="text-xs font-semibold text-emerald-800">ตัวอย่างรูปสินค้า</p>
+                <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-emerald-700">พร้อมใช้งาน</span>
+              </div>
+              <img :src="form.imageUrl" alt="preview" class="h-44 w-full object-cover" />
+            </div>
+            <div v-else class="rounded-xl border border-dashed border-neutral-300 bg-white/70 px-3 py-6 text-center text-xs text-neutral-500">
+              ยังไม่ได้เลือกรูปสินค้า
+            </div>
+          </div>
+        </fieldset>
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="createModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="saving" @click="submitCreate">
-            {{ saving ? 'กำลังบันทึก...' : 'บันทึกสินค้า' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="createModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[140px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="saving"
+              @click="submitCreate"
+            >
+              <span v-if="saving" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+              {{ saving ? 'กำลังบันทึก...' : 'บันทึกสินค้า' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>
 
     <BaseModal ref="editModalRef" id="edit-product-modal" title="แก้ไขสินค้า" close-label="ปิด">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-white to-cyan-50/40 p-3 md:grid-cols-2 md:p-4">
         <div class="md:col-span-2">
           <label class="text-xs font-semibold text-neutral-600">หมวดหมู่</label>
           <div class="mt-1">
-            <BaseSelectDropdown v-model="editForm.categoryId" :options="productCategoryOptions" placeholder="เลือกหมวดหมู่สินค้า" />
+            <BaseSelectDropdown v-model="editForm.categoryId" :options="productCategoryOptions" placeholder="เลือกหมวดหมู่สินค้า" class="dropdown-top" />
           </div>
         </div>
 
@@ -624,10 +785,8 @@ onMounted(async () => {
 
         <div>
           <label class="text-xs font-semibold text-neutral-600">SKU</label>
-          <input v-model="editForm.sku" type="text" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" @blur="checkEditSku" />
-          <p v-if="skuCheckingEdit" class="mt-1 text-xs text-neutral-500">กำลังตรวจสอบ SKU...</p>
-          <p v-else-if="skuDuplicateEdit" class="mt-1 text-xs text-red-600">SKU นี้ถูกใช้งานแล้ว</p>
-          <p v-else-if="editForm.sku.trim()" class="mt-1 text-xs text-green-700">SKU นี้ใช้งานได้</p>
+          <input v-model="editForm.sku" type="text" readonly class="mt-1 w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-700 outline-none" />
+          <p class="mt-1 text-xs text-neutral-500">SKU ถูกสร้างจากระบบหลังบ้าน</p>
         </div>
         <div>
           <label class="text-xs font-semibold text-neutral-600">ราคา</label>
@@ -649,30 +808,144 @@ onMounted(async () => {
           <label class="text-xs font-semibold text-neutral-600">รายละเอียด</label>
           <textarea v-model="editForm.description" rows="3" class="mt-1 w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#166534]" />
         </div>
+
+        <fieldset class="md:col-span-2 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 via-white to-lime-50/40 p-3.5 md:p-4">
+          <legend class="px-2 text-xs font-bold uppercase tracking-[0.08em] text-emerald-700">รูปสินค้า</legend>
+
+          <div class="space-y-3">
+            <div class="rounded-xl border border-dashed border-emerald-300/90 bg-white/90 p-3">
+              <div class="mb-2 flex items-center gap-2 text-emerald-700">
+                <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="M7 10l5-5 5 5" />
+                    <path d="M12 5v12" />
+                  </svg>
+                </span>
+                <p class="text-xs font-semibold">เปลี่ยนภาพสินค้า</p>
+              </div>
+
+              <input
+                id="edit-product-image-input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                class="sr-only"
+                :disabled="uploadingEditImage"
+                @change="onEditImageChange"
+              />
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label
+                  for="edit-product-image-input"
+                  class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                  :class="uploadingEditImage ? 'pointer-events-none opacity-60' : ''"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="M7 10l5-5 5 5" />
+                    <path d="M12 5v12" />
+                  </svg>
+                  เลือกรูปสินค้า
+                </label>
+                <p class="truncate rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 sm:flex-1">
+                  {{ editSelectedFileName || 'ยังไม่ได้เลือกไฟล์' }}
+                </p>
+              </div>
+              <p class="mt-2 text-xs text-neutral-600">รองรับ PNG, JPG, WEBP ขนาดสูงสุด 10MB</p>
+
+              <div v-if="uploadingEditImage" class="mt-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                <span class="loading loading-spinner loading-xs" />
+                กำลังอัปโหลดรูป...
+              </div>
+            </div>
+
+            <div v-if="editForm.imageUrl" class="overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-sm">
+              <div class="flex items-center justify-between border-b border-emerald-100 bg-emerald-50/70 px-3 py-2">
+                <p class="text-xs font-semibold text-emerald-800">รูปปัจจุบัน</p>
+                <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-emerald-700">แสดงผลแล้ว</span>
+              </div>
+              <img :src="editForm.imageUrl" alt="preview" class="h-44 w-full object-cover" />
+            </div>
+            <div v-else class="rounded-xl border border-dashed border-neutral-300 bg-white/70 px-3 py-6 text-center text-xs text-neutral-500">
+              ยังไม่มีรูปสินค้า
+            </div>
+          </div>
+        </fieldset>
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="editModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-primary border-none" :disabled="savingEdit" @click="submitEdit">
-            {{ savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="editModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="savingEdit"
+              @click="submitEdit"
+            >
+              <span v-if="savingEdit" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+              </svg>
+              {{ savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>
 
     <BaseModal ref="deleteModalRef" id="delete-product-modal" title="ยืนยันการลบสินค้า" close-label="ปิด">
-      <div class="space-y-2 text-sm text-neutral-700">
-        <p>คุณกำลังจะลบสินค้า <span class="font-semibold text-neutral-900">{{ deletingProductName || 'รายการนี้' }}</span></p>
-        <p class="text-red-600">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+      <div class="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-rose-50 p-3.5">
+        <div class="flex items-start gap-3">
+          <div class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600">
+            <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm text-slate-700">
+              คุณกำลังจะลบสินค้า
+              <span class="font-semibold text-slate-900">{{ deletingProductName || 'รายการนี้' }}</span>
+            </p>
+            <p class="text-xs text-red-700">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+          </div>
+        </div>
       </div>
 
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-3">
-          <button type="button" class="btn ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="btn rounded-xl bg-red-600 hover:bg-red-700 text-white border-none" :disabled="deleting" @click="submitDelete">
-            {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
-          </button>
+        <div class="w-full border-t border-slate-200 pt-3">
+          <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="deleteModalRef?.close()"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[150px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_-12px_rgba(220,38,38,.9)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="deleting"
+              @click="submitDelete"
+            >
+              <span v-if="deleting" class="loading loading-spinner loading-xs" />
+              <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M19 6l-1 14H6L5 6" />
+              </svg>
+              {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
+            </button>
+          </div>
         </div>
       </template>
     </BaseModal>

@@ -35,6 +35,7 @@ type AuthTokensResponse = {
 }
 
 const SESSION_KEY = 'ns_auth'
+const REMEMBER_PREF_KEY = 'ns_customer_remember_me'
 const ACCESS_COOKIE = 'customer_access_token'
 const REFRESH_COOKIE = 'customer_refresh_token'
 
@@ -75,9 +76,13 @@ const normalizeTokens = (data: unknown): AuthTokensResponse => {
   }
 }
 
-const setCookie = (name: string, value: string, maxAge: number) => {
+const setCookie = (name: string, value: string, maxAge: number, persistent = true) => {
   if (!import.meta.client) return
-  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${Math.floor(maxAge)}; SameSite=Lax`
+  if (persistent && Number.isFinite(maxAge) && maxAge > 0) {
+    document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${Math.floor(maxAge)}; SameSite=Lax`
+    return
+  }
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; SameSite=Lax`
 }
 
 const clearCookies = () => {
@@ -94,6 +99,11 @@ const getCookieValue = (name: string): string => {
 
 export const useCustomerAuth = () => {
   const config = useRuntimeConfig()
+
+  const isRememberPreferred = () => {
+    if (!import.meta.client) return false
+    return !!localStorage.getItem(SESSION_KEY)
+  }
 
   // ── Session ──────────────────────────────────────────────────────────────
 
@@ -121,13 +131,14 @@ export const useCustomerAuth = () => {
 
     const defaultAccessAge = 60 * 5
     const defaultRefreshAge = 60 * 60 * 24 * 7
-    setCookie(ACCESS_COOKIE, tokens.accessToken, tokens.accessTokenExpiresIn || defaultAccessAge)
-    setCookie(REFRESH_COOKIE, tokens.refreshToken, tokens.refreshTokenExpiresIn || defaultRefreshAge)
+    setCookie(ACCESS_COOKIE, tokens.accessToken, tokens.accessTokenExpiresIn || defaultAccessAge, remember)
+    setCookie(REFRESH_COOKIE, tokens.refreshToken, tokens.refreshTokenExpiresIn || defaultRefreshAge, remember)
   }
 
   const clearSession = async () => {
     if (import.meta.client) {
       localStorage.removeItem(SESSION_KEY)
+      localStorage.removeItem(REMEMBER_PREF_KEY)
       sessionStorage.removeItem(SESSION_KEY)
       clearCookies()
     }
@@ -164,7 +175,7 @@ export const useCustomerAuth = () => {
       const d = asRecord(res?.data)
       const newToken = pickStr(d, 'accessToken', 'access_token')
       const newExp = pickNum(d, 'accessTokenExpiresIn', 'access_token_expires_in')
-      if (newToken) setCookie(ACCESS_COOKIE, newToken, newExp || 300)
+      if (newToken) setCookie(ACCESS_COOKIE, newToken, newExp || 300, isRememberPreferred())
 
       return await $fetch<T>(url, {
         baseURL: config.public.apiBase,

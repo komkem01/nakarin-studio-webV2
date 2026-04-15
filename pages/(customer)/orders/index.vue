@@ -200,7 +200,8 @@ onMounted(fetchOrders)
         >
           <div class="flex items-start justify-between gap-3 mb-3">
             <div>
-              <div class="font-semibold text-neutral-900 text-sm leading-snug">{{ b.packageName || b.baiseeStyle || 'บายศรี' }}</div>
+              <div class="font-semibold text-neutral-900 text-sm leading-snug">{{ b.packageName || 'บายศรี' }}</div>
+              <div v-if="b.baiseeStyle" class="text-xs text-neutral-500 mt-0.5">สไตล์: {{ b.baiseeStyle }}</div>
               <div class="text-xs text-neutral-400 mt-0.5"># {{ b.bookingNo }}</div>
             </div>
             <span class="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full border" :class="statusColor(b.status)">

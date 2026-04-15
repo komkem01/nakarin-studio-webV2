@@ -10,6 +10,7 @@ type ProductRow = {
   name: string
   slug: string
   sku: string
+  image_url: string | null
   description: string | null
   price: number
   stock_qty: number
@@ -34,6 +35,7 @@ type PackageItemRow = {
 type PackageRow = {
   id: string
   name: string
+  workType: string
   slug: string
   description: string | null
   price: number
@@ -106,6 +108,12 @@ const pickNullableString = (src: unknown, snake: string, camel: string): string 
   return null
 }
 
+const pickStorageId = (src: unknown): string => {
+  const d = asRecord(src)
+  const v = d.storage_id ?? d.storageId
+  return typeof v === 'string' ? v.trim() : ''
+}
+
 export const useCustomerApi = () => {
   const config = useRuntimeConfig()
 
@@ -116,19 +124,24 @@ export const useCustomerApi = () => {
     })
   }
 
-  const normalizeProduct = (src: unknown): ProductRow => ({
-    id: pickString(src, 'id', 'id'),
-    category_id: pickString(src, 'category_id', 'categoryId'),
-    category_name: pickString(src, 'category_name', 'categoryName'),
-    category_slug: pickString(src, 'category_slug', 'categorySlug'),
-    name: pickString(src, 'name', 'name'),
-    slug: pickString(src, 'slug', 'slug'),
-    sku: pickString(src, 'sku', 'sku'),
-    description: pickNullableString(src, 'description', 'description'),
-    price: pickNumber(src, 'price', 'price'),
-    stock_qty: pickNumber(src, 'stock_qty', 'stockQty'),
-    is_active: pickBoolean(src, 'is_active', 'isActive', true),
-  })
+  const normalizeProduct = (src: unknown): ProductRow => {
+    const storageId = pickStorageId(src)
+    const stableImageUrl = storageId ? `${String(config.public.apiBase || '').replace(/\/$/, '')}/api/v1/uploads/${storageId}/proxy` : null
+    return {
+      id: pickString(src, 'id', 'id'),
+      category_id: pickString(src, 'category_id', 'categoryId'),
+      category_name: pickString(src, 'category_name', 'categoryName'),
+      category_slug: pickString(src, 'category_slug', 'categorySlug'),
+      name: pickString(src, 'name', 'name'),
+      slug: pickString(src, 'slug', 'slug'),
+      sku: pickString(src, 'sku', 'sku'),
+      image_url: stableImageUrl || pickNullableString(src, 'image_url', 'imageUrl'),
+      description: pickNullableString(src, 'description', 'description'),
+      price: pickNumber(src, 'price', 'price'),
+      stock_qty: pickNumber(src, 'stock_qty', 'stockQty'),
+      is_active: pickBoolean(src, 'is_active', 'isActive', true),
+    }
+  }
 
   const normalizePackageItem = (src: unknown): PackageItemRow => ({
     id: pickString(src, 'id', 'id'),
@@ -143,6 +156,7 @@ export const useCustomerApi = () => {
     return {
       id: pickString(src, 'id', 'id'),
       name: pickString(src, 'name', 'name'),
+      workType: pickString(src, 'work_type', 'workType', 'mongkol'),
       slug: pickString(src, 'slug', 'slug'),
       description: pickNullableString(src, 'description', 'description'),
       price: pickNumber(src, 'price', 'price'),

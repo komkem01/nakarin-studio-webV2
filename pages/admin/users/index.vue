@@ -370,6 +370,7 @@ onMounted(load)
             v-model="memberForm.genderId"
             :options="[{ label: '-- เลือกเพศ --', value: '' }, ...genders.map(g => ({ label: g.name, value: g.id }))]"
             placeholder="-- เลือกเพศ --"
+            class="dropdown-top"
             @update:model-value="memberForm.prefixId = ''"
           />
         </div>
@@ -379,6 +380,7 @@ onMounted(load)
             v-model="memberForm.prefixId"
             :options="[{ label: '-- เลือกคำนำหน้า --', value: '' }, ...filteredPrefixes.map(p => ({ label: p.name, value: p.id }))]"
             placeholder="-- เลือกคำนำหน้า --"
+            class="dropdown-top"
             :disabled="!memberForm.genderId"
           />
         </div>
@@ -387,6 +389,7 @@ onMounted(load)
           <BaseSelectDropdown
             v-model="memberForm.role"
             :options="[{ label: 'ลูกค้า', value: 'customer' }, { label: 'แอดมิน', value: 'admin' }]"
+            class="dropdown-top"
           />
         </div>
       </div>

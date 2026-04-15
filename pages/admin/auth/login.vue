@@ -12,6 +12,7 @@ useSeoMeta({
 const { login } = useAdminAuthApi()
 const route = useRoute()
 const toast = useAppToast()
+const REMEMBER_PREF_KEY = 'ns_admin_remember_me'
 
 const form = reactive({
   phone: '',
@@ -158,8 +159,11 @@ const handleSubmit = async () => {
         localStorage.removeItem('ns_admin_auth')
         sessionStorage.setItem('ns_admin_auth', JSON.stringify(persist))
       }
+
+      localStorage.setItem(REMEMBER_PREF_KEY, form.remember ? '1' : '0')
     }
 
+    toast.success('เข้าสู่ระบบสำเร็จ')
     await navigateTo('/admin/dashboard')
   } catch (error) {
     const code = parseApiCode(error)
@@ -184,6 +188,10 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
+  if (import.meta.client) {
+    form.remember = localStorage.getItem(REMEMBER_PREF_KEY) === '1'
+  }
+
   const queryPhone = String(route.query.phone || '')
   const registered = String(route.query.registered || '') === '1'
 
@@ -250,15 +258,6 @@ onMounted(() => {
             role="status"
           >
             {{ infoMessage }}
-          </div>
-
-          <!-- General error -->
-          <div
-            v-if="errors.general"
-            class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
-            role="alert"
-          >
-            {{ errors.general }}
           </div>
 
           <div class="flex flex-col gap-1.5">
@@ -333,7 +332,7 @@ onMounted(() => {
               type="checkbox"
               class="w-4 h-4 border border-neutral-400 accent-[#166534]"
             />
-            <span class="text-sm text-neutral-600">จดจำการเข้าสู่ระบบ</span>
+            <span class="text-sm text-neutral-600">จดจำฉัน</span>
           </label>
 
           <button

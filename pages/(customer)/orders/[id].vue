@@ -171,8 +171,8 @@ const messageInput = ref('')
 const messageThreadRef = ref<HTMLElement | null>(null)
 const isTypingMessage = ref(false)
 const uploadingSlip = ref(false)
+const slipFile = ref<File | null>(null)
 const slipForm = reactive({
-  fileUrl: '',
   fileName: '',
   mimeType: 'image/jpeg',
   fileSize: 0,
@@ -480,35 +480,57 @@ const sendMessage = async () => {
 }
 
 const openUploadSlip = () => {
-  slipForm.fileUrl = ''
+  slipFile.value = null
   slipForm.fileName = booking.value?.bookingNo ? `payment-slip-${booking.value.bookingNo}` : 'payment-slip'
   slipForm.mimeType = 'image/jpeg'
   slipForm.fileSize = 0
   uploadSlipModalRef.value?.open()
 }
 
-const submitSlip = async () => {
-  if (!booking.value?.id) return
-  if (!slipForm.fileUrl.trim()) {
-    toast.warning('กรุณากรอกลิงก์ไฟล์สลิป')
+const onSlipFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] || null
+  slipFile.value = file
+  if (!file) {
+    slipForm.mimeType = 'image/jpeg'
+    slipForm.fileSize = 0
     return
   }
-  if (!/^https?:\/\//i.test(slipForm.fileUrl.trim())) {
-    toast.warning('ลิงก์ไฟล์สลิปต้องขึ้นต้นด้วย http:// หรือ https://')
+
+  if (!slipForm.fileName.trim()) {
+    slipForm.fileName = file.name.replace(/\.[^.]+$/, '') || 'payment-slip'
+  }
+  slipForm.mimeType = file.type || 'image/jpeg'
+  slipForm.fileSize = Number(file.size || 0)
+}
+
+const submitSlip = async () => {
+  if (!booking.value?.id) return
+  if (!slipFile.value) {
+    toast.warning('กรุณาเลือกไฟล์สลิปก่อน')
     return
   }
 
   uploadingSlip.value = true
   try {
+    const fd = new FormData()
+    fd.append('target', 'payment_slip')
+    fd.append('file', slipFile.value)
+
+    const uploadRes = await authFetch<{ data?: { id?: string, url?: string } }>('/api/v1/uploads', {
+      method: 'POST',
+      body: fd,
+    })
+    const storageId = String(uploadRes?.data?.id || '').trim()
+    const uploadedUrl = String(uploadRes?.data?.url || '').trim()
+    if (!storageId || !uploadedUrl) throw new Error('missing-upload-data')
+
     await authFetch('/api/v1/booking-attachments', {
       method: 'POST',
       body: {
         bookingId: booking.value.id,
+        storageId,
         attachmentType: 'payment_slip',
-        fileName: slipForm.fileName.trim() || 'payment-slip',
-        fileUrl: slipForm.fileUrl.trim(),
-        mimeType: slipForm.mimeType.trim() || 'image/jpeg',
-        fileSize: Number(slipForm.fileSize) || 1,
       },
     })
     toast.success('อัปโหลดสลิปเรียบร้อย')
@@ -612,7 +634,8 @@ onBeforeUnmount(() => {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <p class="text-neutral-400">รายการ</p>
-              <p class="font-medium text-neutral-900 mt-1">{{ booking.packageName || booking.baiseeStyle || 'บายศรี' }}</p>
+              <p class="font-medium text-neutral-900 mt-1">{{ booking.packageName || 'บายศรี' }}</p>
+              <p v-if="booking.baiseeStyle" class="text-xs text-neutral-500 mt-1">สไตล์: {{ booking.baiseeStyle }}</p>
             </div>
             <div>
               <p class="text-neutral-400">วันงาน</p>
@@ -766,6 +789,9 @@ onBeforeUnmount(() => {
                     {{ a.isVerified ? 'ตรวจสอบแล้ว' : 'รอตรวจสอบ' }}
                   </span>
                 </div>
+                <div class="mt-2 overflow-hidden rounded-lg border border-[#d1fae5] bg-white">
+                  <img :src="a.fileUrl" :alt="a.fileName" class="h-28 w-full object-cover" />
+                </div>
               </a>
             </div>
           </div>
@@ -851,8 +877,9 @@ onBeforeUnmount(() => {
     <BaseModal ref="uploadSlipModalRef" id="customer-order-upload-slip" title="อัปโหลดสลิป" :backdrop-close="true">
       <div class="space-y-3">
         <div class="space-y-1">
-          <label class="text-sm font-medium text-neutral-700">ลิงก์ไฟล์สลิป</label>
-          <input v-model="slipForm.fileUrl" type="url" placeholder="https://..." class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-[#166534]" />
+          <label class="text-sm font-medium text-neutral-700">เลือกไฟล์สลิป</label>
+          <input type="file" accept="image/png,image/jpeg,image/webp" class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-[#166534]" @change="onSlipFileChange" />
+          <p class="text-xs text-neutral-500">รองรับไฟล์ PNG, JPG, WEBP ขนาดไม่เกิน 10MB</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="space-y-1">
@@ -863,6 +890,9 @@ onBeforeUnmount(() => {
             <label class="text-sm font-medium text-neutral-700">MimeType</label>
             <input v-model="slipForm.mimeType" type="text" class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-[#166534]" />
           </div>
+        </div>
+        <div v-if="slipFile" class="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800">
+          ไฟล์ที่เลือก: {{ slipFile.name }} ({{ Math.max(1, Math.round((slipFile.size || 0) / 1024)) }} KB)
         </div>
       </div>
       <template #actions>

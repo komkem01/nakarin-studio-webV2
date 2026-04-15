@@ -6,6 +6,7 @@ useSeoMeta({ title: 'เข้าสู่ระบบ - Nakarin Studio' })
 const { login } = useCustomerAuth()
 const toast = useAppToast()
 const route = useRoute()
+const REMEMBER_PREF_KEY = 'ns_customer_remember_me'
 
 const form = reactive({ phone: '', password: '', remember: false })
 const errors = reactive({ phone: '', password: '' })
@@ -39,6 +40,9 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const tokens = await login({ phone: normalizePhone(form.phone), password: form.password }, form.remember)
+    if (import.meta.client) {
+      localStorage.setItem(REMEMBER_PREF_KEY, form.remember ? '1' : '0')
+    }
     if (tokens.member.role !== 'customer' && tokens.member.role !== 'admin') {
       toast.error('บัญชีนี้ไม่มีสิทธิ์เข้าใช้งาน')
       return
@@ -57,6 +61,11 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  if (!import.meta.client) return
+  form.remember = localStorage.getItem(REMEMBER_PREF_KEY) === '1'
+})
 </script>
 
 <template>
@@ -207,7 +216,7 @@ const handleSubmit = async () => {
             <div class="flex items-center justify-between">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input id="remember" v-model="form.remember" type="checkbox" class="w-4 h-4 rounded border-neutral-300 accent-[#166534] cursor-pointer" />
-                <span class="text-sm text-neutral-600">จดจำการเข้าสู่ระบบ</span>
+                <span class="text-sm text-neutral-600">จดจำฉัน</span>
               </label>
             </div>
 

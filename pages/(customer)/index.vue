@@ -13,10 +13,10 @@ const loadingPackages = ref(true)
 const products = ref<any[]>([])
 const packages = ref<any[]>([])
 
-type HomeTag = 'all' | 'mongkol' | 'buat' | 'wedding'
 type SortKey = 'featured' | 'price-asc' | 'price-desc' | 'name-asc'
 
-const filterTag = ref<HomeTag>('all')
+const productFilterTag = ref('all')
+const packageFilterTag = ref('all')
 const productSort = ref<SortKey>('featured')
 const packageSort = ref<SortKey>('featured')
 
@@ -41,12 +41,47 @@ const heroStats = computed(() => [
 
 const heroPreviewPackages = computed(() => packages.value.slice(0, 3))
 
-const filterOptions: Array<{ label: string; value: HomeTag }> = [
-  { label: 'ทั้งหมด', value: 'all' },
-  { label: 'งานมงคล', value: 'mongkol' },
-  { label: 'งานบวช', value: 'buat' },
-  { label: 'งานแต่ง', value: 'wedding' },
+const productFilterOptions = computed<Array<{ label: string; value: string }>>(() => {
+  const uniqueById = new Map<string, string>()
+
+  for (const item of products.value) {
+    const categoryId = String(item?.category_id || '').trim()
+    const categoryName = String(item?.category_name || '').trim()
+    if (!categoryId || !categoryName || uniqueById.has(categoryId)) continue
+    uniqueById.set(categoryId, categoryName)
+  }
+
+  const categories = Array.from(uniqueById.entries())
+    .map(([value, label]) => ({ label, value }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'th'))
+
+  return [{ label: 'ทั้งหมด', value: 'all' }, ...categories]
+})
+
+const packageWorkTypeDefinitions = [
+  { value: 'mongkol', label: 'งานมงคล' },
+  { value: 'buat', label: 'งานบวช' },
+  { value: 'wedding', label: 'งานแต่ง' },
+  { value: 'other', label: 'งานอื่นๆ' },
 ]
+
+const packageWorkTypeLabelMap: Record<string, string> = {
+  mongkol: 'งานมงคล',
+  buat: 'งานบวช',
+  wedding: 'งานแต่ง',
+  other: 'งานอื่นๆ',
+}
+
+const packageFilterOptions = computed<Array<{ label: string; value: string }>>(() => {
+  const usedTypes = new Set(
+    packages.value
+      .map((item: any) => String(item?.workType || '').trim().toLowerCase())
+      .filter(Boolean),
+  )
+
+  const base = packageWorkTypeDefinitions.filter((item) => usedTypes.size === 0 || usedTypes.has(item.value))
+  return [{ label: 'ทั้งหมด', value: 'all' }, ...base]
+})
 
 const sortOptions: Array<{ label: string; value: SortKey }> = [
   { label: 'แนะนำ', value: 'featured' },
@@ -55,16 +90,14 @@ const sortOptions: Array<{ label: string; value: SortKey }> = [
   { label: 'ชื่อ A-Z', value: 'name-asc' },
 ]
 
-const textOf = (item: any) =>
-  `${item?.name || ''} ${item?.description || ''} ${item?.category_name || ''}`.toLowerCase()
+const isProductCategoryMatch = (item: any, categoryId: string) => {
+  if (categoryId === 'all') return true
+  return String(item?.category_id || '') === categoryId
+}
 
-const isTagMatch = (item: any, tag: HomeTag) => {
-  if (tag === 'all') return true
-  const text = textOf(item)
-  if (tag === 'mongkol') return /(มงคล|ขึ้นบ้าน|ทำบุญ|ไหว้ครู|พิธี)/.test(text)
-  if (tag === 'buat') return /(บวช|อุปสมบท|นาค)/.test(text)
-  if (tag === 'wedding') return /(แต่ง|วิวาห์|สมรส|เจ้าบ่าว|เจ้าสาว)/.test(text)
-  return true
+const isPackageWorkTypeMatch = (pkg: any, workType: string) => {
+  if (workType === 'all') return true
+  return String(pkg?.workType || '').trim().toLowerCase() === workType
 }
 
 const sortItems = <T extends { name?: string; price?: number }>(items: T[], sortKey: SortKey) => {
@@ -75,8 +108,8 @@ const sortItems = <T extends { name?: string; price?: number }>(items: T[], sort
   return cloned
 }
 
-const filteredProducts = computed(() => sortItems(products.value.filter((p: any) => isTagMatch(p, filterTag.value)), productSort.value))
-const filteredPackages = computed(() => sortItems(packages.value.filter((p: any) => isTagMatch(p, filterTag.value)), packageSort.value))
+const filteredProducts = computed(() => sortItems(products.value.filter((p: any) => isProductCategoryMatch(p, productFilterTag.value)), productSort.value))
+const filteredPackages = computed(() => sortItems(packages.value.filter((p: any) => isPackageWorkTypeMatch(p, packageFilterTag.value)), packageSort.value))
 
 const currency = (v: number) => new Intl.NumberFormat('th-TH', {
   style: 'currency',
@@ -207,7 +240,7 @@ onMounted(async () => {
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div class="space-y-2">
             <span class="ns-ui-pill">บริการหลัก</span>
-            <h2 class="text-3xl font-bold text-neutral-900">บายศรีหลายรูปแบบ<br /><span class="text-[#166534] text-2xl font-medium">เลือกได้ตามงาน</span></h2>
+            <h2 class="text-3xl font-bold text-neutral-900">บายศรีหลายรูปแบบ<br /><span class="text-[#166534] text-2xl font-medium">เลือกตามหมวดหมู่</span></h2>
           </div>
           <NuxtLink to="/booking" class="ns-ui-btn ns-ui-btn-secondary shrink-0">สั่งเลย <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" /></svg></NuxtLink>
         </div>
@@ -215,11 +248,11 @@ onMounted(async () => {
         <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 ns-ui-card px-4 py-3 shadow-[0_12px_24px_-22px_rgba(22,101,52,0.45)]">
           <div class="flex flex-wrap items-center gap-2">
             <button
-              v-for="opt in filterOptions"
+              v-for="opt in productFilterOptions"
               :key="opt.value"
               class="ns-ui-filter-chip"
-              :class="filterTag === opt.value ? 'ns-ui-filter-chip-active' : ''"
-              @click="filterTag = opt.value"
+              :class="productFilterTag === opt.value ? 'ns-ui-filter-chip-active' : ''"
+              @click="productFilterTag = opt.value"
             >
               {{ opt.label }}
             </button>
@@ -246,19 +279,20 @@ onMounted(async () => {
           <p class="text-neutral-400">ไม่พบสินค้าในหมวดที่เลือก</p>
         </div>
         <!-- Grid -->
-        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          <div v-for="product in filteredProducts" :key="product.id" class="group rounded-2xl border border-[#bbf7d0] bg-white overflow-hidden hover:shadow-[0_16px_34px_-20px_rgba(22,101,52,0.45)] hover:-translate-y-1 transition-all duration-300">
+        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 items-stretch">
+          <div v-for="product in filteredProducts" :key="product.id" class="group h-full rounded-2xl border border-[#bbf7d0] bg-white overflow-hidden hover:shadow-[0_16px_34px_-20px_rgba(22,101,52,0.45)] hover:-translate-y-1 transition-all duration-300 flex flex-col">
             <div class="relative w-full aspect-square bg-[linear-gradient(180deg,#f0fdf4_0%,#ffffff_100%)] flex items-center justify-center overflow-hidden">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" class="w-12 h-12 text-[#166534]/30 group-hover:scale-110 transition-transform duration-300"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c-4.444 0-8 3.582-8 8 0 2.07.782 3.958 2.065 5.39L12 21l5.935-4.61A7.96 7.96 0 0 0 20 11c0-4.418-3.556-8-8-8Z" /></svg>
+              <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" class="w-12 h-12 text-[#166534]/30 group-hover:scale-110 transition-transform duration-300"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c-4.444 0-8 3.582-8 8 0 2.07.782 3.958 2.065 5.39L12 21l5.935-4.61A7.96 7.96 0 0 0 20 11c0-4.418-3.556-8-8-8Z" /></svg>
               <span v-if="!product.is_active" class="absolute inset-0 bg-neutral-900/30 flex items-center justify-center">
                 <span class="text-xs font-medium text-white bg-neutral-900/60 px-2 py-0.5 rounded-full">ปิดให้บริการ</span>
               </span>
             </div>
-            <div class="p-4 space-y-2.5">
+            <div class="flex flex-1 flex-col p-4">
               <span class="inline-block text-[11px] font-semibold text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0] px-2 py-0.5 rounded-full">{{ product.category_name || 'บายศรี' }}</span>
-              <h3 class="font-semibold text-neutral-900 text-sm leading-snug line-clamp-2">{{ product.name }}</h3>
-              <p class="text-xs text-neutral-400 line-clamp-2">{{ product.description || 'บายศรีมงคล ขอพรสิ่งดีงาม' }}</p>
-              <div class="flex items-center justify-between pt-2 border-t border-[#ecfdf3]">
+              <h3 class="mt-2.5 min-h-[2.6rem] font-semibold text-neutral-900 text-sm leading-snug line-clamp-2">{{ product.name }}</h3>
+              <p class="mt-1 min-h-[2.25rem] text-xs text-neutral-500 line-clamp-2">{{ product.description || 'บายศรีมงคล ขอพรสิ่งดีงาม' }}</p>
+              <div class="mt-auto flex items-center justify-between pt-3 border-t border-[#ecfdf3]">
                 <span class="text-base font-bold text-[#166534]">{{ currency(product.price) }}</span>
                 <NuxtLink to="/booking" class="inline-flex items-center gap-1 text-xs font-semibold text-[#166534] hover:underline">สั่งเลย</NuxtLink>
               </div>
@@ -282,11 +316,11 @@ onMounted(async () => {
         <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 ns-ui-card px-4 py-3 shadow-[0_12px_24px_-22px_rgba(22,101,52,0.45)]">
           <div class="flex flex-wrap items-center gap-2">
             <button
-              v-for="opt in filterOptions"
-              :key="`pkg-${opt.value}`"
+              v-for="opt in packageFilterOptions"
+              :key="`pkg-work-${opt.value}`"
               class="ns-ui-filter-chip"
-              :class="filterTag === opt.value ? 'ns-ui-filter-chip-active' : ''"
-              @click="filterTag = opt.value"
+              :class="packageFilterTag === opt.value ? 'ns-ui-filter-chip-active' : ''"
+              @click="packageFilterTag = opt.value"
             >
               {{ opt.label }}
             </button>
@@ -316,6 +350,11 @@ onMounted(async () => {
                 <p class="text-sm text-neutral-500 mt-1 leading-relaxed">{{ pkg.description || 'แพคเกจบายศรีครบครัน' }}</p>
               </div>
               <div class="text-3xl font-bold text-[#166534]">{{ currency(pkg.price) }}</div>
+              <div>
+                <span class="inline-flex rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-2.5 py-1 text-[11px] font-semibold text-[#166534]">
+                  {{ packageWorkTypeLabelMap[pkg.workType] || 'งานมงคล' }}
+                </span>
+              </div>
               <div class="space-y-2 py-4 border-y border-[#bbf7d0]">
                 <div v-for="item in pkg.items" :key="item.id" class="flex items-center gap-2.5 text-sm text-neutral-600">
                   <div class="w-4 h-4 rounded-full bg-[#f0fdf4] border border-[#bbf7d0] flex items-center justify-center shrink-0">
