@@ -259,21 +259,27 @@ onMounted(load)
     <!-- Delete Modal -->
     <BaseModal ref="deleteModalRef" id="delete-order-modal" title="ยืนยันการลบออเดอร์" close-label="ปิด">
       <div class="space-y-4">
-        <div class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v4.25c0 .414.336.75.75.75h.008a.75.75 0 0 0 .742-.75V6.75ZM10 13.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" clip-rule="evenodd" />
-          </svg>
-          การกระทำที่ไม่สามารถย้อนกลับ
+        <div class="rounded-2xl border border-red-200 bg-[linear-gradient(135deg,_#fff1f2_0%,_#ffffff_100%)] p-4">
+          <div class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-red-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5">
+              <path fill-rule="evenodd" d="M18 10A8 8 0 1 1 2 10a8 8 0 0 1 16 0Zm-8.75-3.75a.75.75 0 0 1 1.5 0v4.25a.75.75 0 0 1-1.5 0V6.25ZM10 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+            </svg>
+            การลบถาวร
+          </div>
+
+          <p class="text-sm text-neutral-700">ระบบกำลังจะลบออเดอร์นี้อย่างถาวร:</p>
+          <p class="mt-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 font-mono text-sm font-bold tracking-wide text-neutral-900">
+            {{ deletingOrderNo || 'รายการนี้' }}
+          </p>
+          <p class="mt-2 text-xs text-red-700">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
         </div>
 
-        <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
-          <p>คุณกำลังจะลบออเดอร์</p>
-          <p class="mt-1 text-base font-bold tracking-wide text-neutral-900">{{ deletingOrderNo || 'รายการนี้' }}</p>
-          <p class="mt-2 text-xs text-red-600">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+        <div class="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+          ตรวจสอบให้แน่ใจว่าคุณลบออเดอร์ถูกต้องก่อนยืนยัน
         </div>
       </div>
       <template #actions>
-        <div class="grid w-full grid-cols-2 gap-2 sm:gap-3">
+        <div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
           <button type="button" class="ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
           <button type="button" class="rounded-xl border border-red-700 bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60" :disabled="deleting" @click="confirmDelete">
             {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
