@@ -24,6 +24,7 @@ const titleMap: Record<string, string> = {
   "/admin/products": "จัดการสินค้า",
   "/admin/product-categories": "จัดการหมวดหมู่สินค้า",
   "/admin/packages": "จัดการแพคเกจ",
+  "/admin/payment-methods": "ช่องทางชำระเงิน",
   "/admin/bookings": "จัดการออเดอร์",
   "/admin/bookings/[id]": "รายละเอียดออเดอร์",
   "/admin/reports": "รายงาน",

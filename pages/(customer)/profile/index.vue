@@ -115,6 +115,14 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 const statusColor = (s: string) => STATUS_COLOR[s] || 'bg-neutral-100 text-neutral-500 border-neutral-200'
+const paidAmountValue = (b: Booking) => Math.max(0, b.paidAmount)
+const outstandingAmount = (b: Booking) => Math.max(0, b.balanceAmount)
+const paymentPercent = (b: Booking) => {
+  const total = Math.max(0, b.totalPrice)
+  if (total <= 0) return 0
+  const percent = Math.round((paidAmountValue(b) / total) * 100)
+  return Math.max(0, Math.min(100, percent))
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -278,11 +286,17 @@ const handleLogout = async () => {
               </div>
             </div>
 
-            <div class="text-right shrink-0">
-              <div class="text-base font-bold text-[#166534]">{{ currency(b.totalPrice) }}</div>
-              <div class="text-xs text-neutral-400">
-                ชำระแล้ว {{ currency(b.paidAmount) }}
-                <span v-if="b.balanceAmount > 0"> · ค้างชำระ {{ currency(b.balanceAmount) }}</span>
+            <div class="min-w-[190px] rounded-xl border border-[#ecfdf3] bg-[#f9fefb] px-3 py-2">
+              <p class="text-[11px] text-neutral-500">ยอดสุทธิ</p>
+              <p class="text-base font-bold text-[#166534]">{{ currency(b.totalPrice) }}</p>
+              <div class="mt-2 h-1.5 w-full rounded-full bg-[#ecfdf3] overflow-hidden">
+                <div class="h-full rounded-full bg-[#22c55e]" :style="{ width: `${paymentPercent(b)}%` }" />
+              </div>
+              <div class="mt-1 flex items-center justify-between text-[11px]">
+                <span class="text-neutral-500">ชำระแล้ว {{ currency(paidAmountValue(b)) }}</span>
+                <span :class="outstandingAmount(b) > 0 ? 'text-amber-700 font-medium' : 'text-[#166534] font-medium'">
+                  คงเหลือ {{ currency(outstandingAmount(b)) }}
+                </span>
               </div>
             </div>
           </div>

@@ -37,6 +37,10 @@ export type BookingAttachmentRow = {
   id: string
   bookingId: string
   attachmentType: string
+  paymentMethodId: string | null
+  paymentMethodChannel: string | null
+  paymentMethodBankName: string | null
+  paymentAmount: number | null
   fileName: string
   fileUrl: string
   mimeType: string | null
@@ -71,6 +75,8 @@ export type BookingRow = {
   depositAmount: number
   paidAmount: number
   balanceAmount: number
+  refundAmount: number | null
+  refundedAt: string | null
   statusUpdatedAt: string
 }
 
@@ -134,6 +140,10 @@ const normalizeBooking = (src: unknown): BookingRow => ({
   depositAmount: pickNumber(src, 'deposit_amount'),
   paidAmount: pickNumber(src, 'paid_amount'),
   balanceAmount: pickNumber(src, 'balance_amount'),
+  refundAmount: Number.isFinite(Number(asRecord(src)['refund_amount'] ?? asRecord(src)['refundAmount']))
+    ? Number(asRecord(src)['refund_amount'] ?? asRecord(src)['refundAmount'])
+    : null,
+  refundedAt: pickNullableString(src, 'refunded_at') ?? pickNullableString(src, 'refundedAt'),
   statusUpdatedAt: pickString(src, 'status_updated_at'),
 })
 
@@ -161,16 +171,28 @@ const normalizeMessage = (src: unknown): BookingMessageRow => ({
 
 const normalizeAttachment = (src: unknown): BookingAttachmentRow => {
   const d = asRecord(src)
-  const fs = Number(d['file_size'])
+  const fs = Number(d['fileSize'] ?? d['file_size'])
+  const pick = (camel: string, snake: string) => {
+    const value = d[camel] ?? d[snake]
+    return typeof value === 'string' ? value : ''
+  }
+  const pickNullable = (camel: string, snake: string) => {
+    const value = pick(camel, snake).trim()
+    return value || null
+  }
   return {
-    id: pickString(src, 'id'),
-    bookingId: pickString(src, 'booking_id'),
-    attachmentType: pickString(src, 'attachment_type'),
-    fileName: pickString(src, 'file_name'),
-    fileUrl: pickString(src, 'file_url'),
-    mimeType: pickNullableString(src, 'mime_type'),
+    id: pick('id', 'id'),
+    bookingId: pick('bookingId', 'booking_id'),
+    attachmentType: pick('attachmentType', 'attachment_type'),
+    paymentMethodId: pickNullable('paymentMethodId', 'payment_method_id'),
+    paymentMethodChannel: pickNullable('paymentMethodChannel', 'payment_method_channel'),
+    paymentMethodBankName: pickNullable('paymentMethodBankName', 'payment_method_bank_name'),
+    paymentAmount: Number.isFinite(Number(d['paymentAmount'] ?? d['payment_amount'])) ? Number(d['paymentAmount'] ?? d['payment_amount']) : null,
+    fileName: pick('fileName', 'file_name'),
+    fileUrl: pick('fileUrl', 'file_url'),
+    mimeType: pickNullable('mimeType', 'mime_type'),
     fileSize: Number.isFinite(fs) ? fs : null,
-    isVerified: !!d['is_verified'],
+    isVerified: Boolean(d['isVerified'] ?? d['is_verified']),
   }
 }
 
@@ -244,8 +266,15 @@ export const useAdminOrderApi = () => {
     return normalizeBooking(res?.data)
   }
 
-  const deleteBooking = async (id: string) => {
-    await authFetch(`/api/v1/bookings/${id}`, { method: 'DELETE' })
+  const decideBookingCancelRequest = async (id: string, payload: {
+    approve: boolean
+    reason?: string
+  }) => {
+    const res = await authFetch<ApiEnvelope<BookingRow>>(`/api/v1/bookings/${id}/cancel-decision`, {
+      method: 'POST',
+      body: payload,
+    })
+    return normalizeBooking(res?.data)
   }
 
   // ─── Booking Details ────────────────────────────────────────────────────────
@@ -314,13 +343,17 @@ export const useAdminOrderApi = () => {
     await authFetch(`/api/v1/booking-attachments/${id}`, { method: 'DELETE' })
   }
 
-  const verifyBookingAttachment = async (id: string) => {
-    const res = await authFetch<ApiEnvelope<unknown>>(`/api/v1/booking-attachments/${id}/verify`, { method: 'PATCH' })
+  const verifyBookingAttachment = async (id: string, confirmedAmount?: number) => {
+    const body = typeof confirmedAmount === 'number' && Number.isFinite(confirmedAmount)
+      ? { confirmedAmount }
+      : undefined
+    const res = await authFetch<ApiEnvelope<unknown>>(`/api/v1/booking-attachments/${id}/verify`, { method: 'PATCH', body })
     return normalizeAttachment(res?.data)
   }
 
   return {
-    listBookings, getBooking, updateBooking, deleteBooking,
+    listBookings, getBooking, updateBooking,
+    decideBookingCancelRequest,
     listBookingDetails, createBookingDetail, updateBookingDetail, deleteBookingDetail,
     listBookingMessages, createBookingMessage,
     listBookingAttachments, deleteBookingAttachment, verifyBookingAttachment,

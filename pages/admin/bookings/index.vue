@@ -5,16 +5,15 @@ import BaseModalComponent from '~/components/base/BaseModal.vue'
 definePageMeta({ layout: 'admin' })
 useSeoMeta({ title: 'จัดการออเดอร์ (Bookings) - Nakarin Studio Admin' })
 
-const { listBookings, deleteBooking } = useAdminOrderApi()
+const { listBookings, updateBooking } = useAdminOrderApi()
 const toast = useAppToast()
 
 const loading = ref(true)
-const deleting = ref(false)
+const cancelling = ref(false)
 
 const orders = ref<BookingRow[]>([])
-const deletingId = ref('')
-const deletingOrderNo = ref('')
-const deleteModalRef = ref<InstanceType<typeof BaseModalComponent> | null>(null)
+const cancelingOrder = ref<BookingRow | null>(null)
+const cancelModalRef = ref<InstanceType<typeof BaseModalComponent> | null>(null)
 
 const filters = reactive({
   q: '',
@@ -66,6 +65,15 @@ const paymentConfig: Record<string, { label: string; cls: string }> = {
 const formatPrice = (n: number) =>
   n.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 
+const paidAmountValue = (order: BookingRow) => Math.max(0, order.paidAmount)
+const outstandingAmount = (order: BookingRow) => Math.max(0, order.balanceAmount)
+const paymentPercent = (order: BookingRow) => {
+  const total = Math.max(0, order.totalPrice)
+  if (total <= 0) return 0
+  const percent = Math.round((paidAmountValue(order) / total) * 100)
+  return Math.max(0, Math.min(100, percent))
+}
+
 const formatDate = (s: string | null) => {
   if (!s) return '-'
   return new Date(s).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -93,23 +101,53 @@ const load = async () => {
 const onSearch = () => { filters.page = 1; load() }
 const onPageChange = (p: number) => { filters.page = p; load() }
 
-const openDelete = (id: string) => {
-  deletingId.value = id
-  deletingOrderNo.value = orders.value.find(o => o.id === id)?.bookingNo ?? ''
-  deleteModalRef.value?.open()
+const openCancel = (id: string) => {
+  cancelingOrder.value = orders.value.find(o => o.id === id) ?? null
+  cancelModalRef.value?.open()
 }
 
-const confirmDelete = async () => {
-  deleting.value = true
+const confirmCancel = async () => {
+  if (!cancelingOrder.value) return
+  cancelling.value = true
   try {
-    await deleteBooking(deletingId.value)
-    toast.success('ลบออเดอร์เรียบร้อย')
-    deleteModalRef.value?.close()
-    load()
+    const target = cancelingOrder.value
+    await updateBooking(target.id, {
+      bookingNo: target.bookingNo,
+      status: 'canceled',
+      payment: target.payment,
+      packageName: target.packageName,
+      baiseeStyle: target.baiseeStyle,
+      memberId: target.memberId,
+      memberAddressId: target.memberAddressId,
+      recipientName: target.recipientName,
+      recipientPhone: target.recipientPhone,
+      deliveryNo: target.deliveryNo,
+      deliveryVillage: target.deliveryVillage,
+      deliveryStreet: target.deliveryStreet,
+      deliveryProvinceId: target.deliveryProvinceId,
+      deliveryDistrictId: target.deliveryDistrictId,
+      deliverySubDistrictId: target.deliverySubDistrictId,
+      deliveryZipcodeId: target.deliveryZipcodeId,
+      eventDate: target.eventDate,
+      scheduledAt: target.scheduledAt,
+      deliveryAt: target.deliveryAt,
+      basePrice: target.basePrice,
+      addonPrice: target.addonPrice,
+      depositAmount: target.depositAmount,
+      paidAmount: target.paidAmount,
+    })
+    if (target.paidAmount > 0) {
+      toast.success(`ยกเลิกออเดอร์และทำรายการคืนเงิน ฿${formatPrice(target.paidAmount)} แล้ว`)
+    } else {
+      toast.success('ยกเลิกออเดอร์เรียบร้อย')
+    }
+    cancelModalRef.value?.close()
+    cancelingOrder.value = null
+    await load()
   } catch {
-    toast.error('ไม่สามารถลบออเดอร์ได้')
+    toast.error('ไม่สามารถยกเลิกออเดอร์ได้')
   } finally {
-    deleting.value = false
+    cancelling.value = false
   }
 }
 
@@ -175,8 +213,7 @@ onMounted(load)
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">การชำระ</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">แพคเกจ</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">วันงาน</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">ยอดรวม</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">คงเหลือ</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">สรุปราคา</th>
               <th class="w-24 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">จัดการ</th>
             </tr>
           </thead>
@@ -215,9 +252,22 @@ onMounted(load)
                 <p v-if="order.baiseeStyle" class="truncate text-xs text-slate-500 mt-0.5">สไตล์: {{ order.baiseeStyle }}</p>
               </td>
               <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ formatDate(order.eventDate) }}</td>
-              <td class="px-4 py-3 text-right font-medium text-slate-900">฿{{ formatPrice(order.totalPrice) }}</td>
-              <td class="px-4 py-3 text-right" :class="order.balanceAmount > 0 ? 'text-red-600 font-semibold' : 'text-emerald-600 font-medium'">
-                ฿{{ formatPrice(order.balanceAmount) }}
+              <td class="px-4 py-3">
+                <div class="min-w-[200px] rounded-xl border border-[#ecfdf3] bg-[#f9fefb] px-3 py-2">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[11px] text-slate-500">ยอดสุทธิ</p>
+                    <p class="text-sm font-bold text-[#166534]">฿{{ formatPrice(order.totalPrice) }}</p>
+                  </div>
+                  <div class="mt-2 h-1.5 w-full rounded-full bg-[#ecfdf3] overflow-hidden">
+                    <div class="h-full rounded-full bg-[#22c55e]" :style="{ width: `${paymentPercent(order)}%` }" />
+                  </div>
+                  <div class="mt-1 flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">ชำระแล้ว ฿{{ formatPrice(paidAmountValue(order)) }}</span>
+                    <span :class="outstandingAmount(order) > 0 ? 'text-amber-700 font-medium' : 'text-[#166534] font-medium'">
+                      คงเหลือ ฿{{ formatPrice(outstandingAmount(order)) }}
+                    </span>
+                  </div>
+                </div>
               </td>
               <td class="px-4 py-3">
                 <div class="flex justify-end gap-2">
@@ -232,17 +282,13 @@ onMounted(load)
                     </svg>
                   </NuxtLink>
                   <button
+                    v-if="order.status !== 'canceled'"
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
-                    title="ลบออเดอร์"
-                    @click="openDelete(order.id)"
+                    class="inline-flex h-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 text-amber-700 transition hover:bg-amber-100"
+                    title="ยกเลิกออเดอร์"
+                    @click="openCancel(order.id)"
                   >
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 6h18" />
-                      <path d="M8 6V4h8v2" />
-                      <path d="M19 6l-1 14H6L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                    </svg>
+                    <span class="text-xs font-semibold">ยกเลิก</span>
                   </button>
                 </div>
               </td>
@@ -259,33 +305,36 @@ onMounted(load)
       </div>
     </div>
 
-    <!-- Delete Modal -->
-    <BaseModal ref="deleteModalRef" id="delete-order-modal" title="ยืนยันการลบออเดอร์" close-label="ปิด">
+    <!-- Cancel Modal -->
+    <BaseModal ref="cancelModalRef" id="cancel-order-modal" title="ยืนยันการยกเลิกออเดอร์" close-label="ปิด">
       <div class="space-y-4">
-        <div class="rounded-2xl border border-red-200 bg-[linear-gradient(135deg,_#fff1f2_0%,_#ffffff_100%)] p-4">
-          <div class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-red-700">
+        <div class="rounded-2xl border border-amber-200 bg-[linear-gradient(135deg,_#fffbeb_0%,_#ffffff_100%)] p-4">
+          <div class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-700">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5">
               <path fill-rule="evenodd" d="M18 10A8 8 0 1 1 2 10a8 8 0 0 1 16 0Zm-8.75-3.75a.75.75 0 0 1 1.5 0v4.25a.75.75 0 0 1-1.5 0V6.25ZM10 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
             </svg>
-            การลบถาวร
+            เก็บประวัติออเดอร์
           </div>
 
-          <p class="text-sm text-neutral-700">ระบบกำลังจะลบออเดอร์นี้อย่างถาวร:</p>
+          <p class="text-sm text-neutral-700">ระบบจะยกเลิกออเดอร์นี้แทนการลบ:</p>
           <p class="mt-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 font-mono text-sm font-bold tracking-wide text-neutral-900">
-            {{ deletingOrderNo || 'รายการนี้' }}
+            {{ cancelingOrder?.bookingNo || 'รายการนี้' }}
           </p>
-          <p class="mt-2 text-xs text-red-700">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+          <p v-if="(cancelingOrder?.paidAmount || 0) > 0" class="mt-2 text-xs text-amber-700">
+            ออเดอร์นี้มียอดชำระแล้ว ฿{{ formatPrice(cancelingOrder?.paidAmount || 0) }} ระบบจะทำรายการคืนเงินอัตโนมัติ
+          </p>
+          <p v-else class="mt-2 text-xs text-amber-700">ออเดอร์นี้ยังไม่มียอดชำระ ระบบจะยกเลิกและคงประวัติไว้</p>
         </div>
 
         <div class="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
-          ตรวจสอบให้แน่ใจว่าคุณลบออเดอร์ถูกต้องก่อนยืนยัน
+          การยกเลิกจะไม่ลบข้อมูลออเดอร์ และยังสามารถตรวจสอบประวัติย้อนหลังได้
         </div>
       </div>
       <template #actions>
         <div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-          <button type="button" class="ns-admin-btn ns-admin-btn-secondary" @click="deleteModalRef?.close()">ยกเลิก</button>
-          <button type="button" class="rounded-xl border border-red-700 bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60" :disabled="deleting" @click="confirmDelete">
-            {{ deleting ? 'กำลังลบ...' : 'ยืนยันการลบ' }}
+          <button type="button" class="ns-admin-btn ns-admin-btn-secondary" @click="cancelModalRef?.close()">ปิด</button>
+          <button type="button" class="rounded-xl border border-amber-700 bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60" :disabled="cancelling" @click="confirmCancel">
+            {{ cancelling ? 'กำลังยกเลิก...' : 'ยืนยันการยกเลิก' }}
           </button>
         </div>
       </template>

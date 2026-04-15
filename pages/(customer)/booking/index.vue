@@ -4,7 +4,20 @@ useSeoMeta({ title: 'สั่งบายศรี - Nakarin Studio' })
 
 const { listProducts, listPackages, listPromotions } = useCustomerApi()
 const { getSession, authFetch } = useCustomerAuth()
+const {
+  paymentMethods,
+  pending: paymentMethodsPending,
+  error: paymentMethodsError,
+  paymentCheckoutSetting,
+} = usePaymentMethods()
 const toast = useAppToast()
+
+const paymentChannelLabel = (channel: string, bankName?: string) => {
+  if (channel === 'promptpay') return 'พร้อมเพย์'
+  if (channel === 'qr_code') return 'QR Code'
+  if (channel === 'other') return 'ช่องทางอื่นๆ'
+  return bankName || 'บัญชีธนาคาร'
+}
 
 // ── ข้อมูลสินค้า/แพคเกจ ────────────────────────────────────────────────────
 
@@ -179,6 +192,68 @@ const discount = computed(() => {
 })
 
 const totalPrice = computed(() => Math.max(0, basePrice.value - discount.value))
+const depositRequired = computed(() => Math.round(totalPrice.value * 0.5))
+const remainingAfterDeposit = computed(() => Math.max(0, totalPrice.value - depositRequired.value))
+type PaymentChoice = 'deposit' | 'paid'
+const paymentChoice = ref<PaymentChoice>('deposit')
+const canPayDeposit = computed(() => paymentCheckoutSetting.value.allowDeposit)
+const canPayFull = computed(() => paymentCheckoutSetting.value.allowFullPayment)
+
+watch([canPayDeposit, canPayFull, () => paymentCheckoutSetting.value.defaultPayment], ([allowDeposit, allowFull, defaultPayment]) => {
+  if (!allowDeposit && allowFull) {
+    paymentChoice.value = 'paid'
+    return
+  }
+  if (allowDeposit && !allowFull) {
+    paymentChoice.value = 'deposit'
+    return
+  }
+  if (!allowDeposit && !allowFull) {
+    paymentChoice.value = 'deposit'
+    return
+  }
+  if (allowDeposit && allowFull) {
+    paymentChoice.value = defaultPayment === 'paid' ? 'paid' : 'deposit'
+  }
+}, { immediate: true })
+
+const payNowAmount = computed(() => paymentChoice.value === 'paid' ? totalPrice.value : depositRequired.value)
+const payLaterAmount = computed(() => Math.max(0, totalPrice.value - payNowAmount.value))
+const paymentChoiceLabel = computed(() => paymentChoice.value === 'paid' ? 'ชำระเต็มจำนวน' : 'ชำระมัดจำ 50%')
+const selectedCheckoutPaymentMethodId = ref('')
+
+watch(paymentMethods, (methods) => {
+  if (!methods.length) {
+    selectedCheckoutPaymentMethodId.value = ''
+    return
+  }
+  if (!methods.some(m => m.id === selectedCheckoutPaymentMethodId.value)) {
+    selectedCheckoutPaymentMethodId.value = methods[0]?.id || ''
+  }
+}, { immediate: true })
+
+const selectedCheckoutPaymentMethod = computed(() =>
+  paymentMethods.value.find(m => m.id === selectedCheckoutPaymentMethodId.value) || null,
+)
+
+const checkoutSlipFile = ref<File | null>(null)
+const checkoutSlipAmount = ref<number | null>(null)
+const uploadingCheckoutSlip = ref(false)
+const checkoutSlipInputRef = ref<HTMLInputElement | null>(null)
+
+const onCheckoutSlipFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  checkoutSlipFile.value = input.files?.[0] || null
+}
+
+const openCheckoutSlipPicker = () => {
+  checkoutSlipInputRef.value?.click()
+}
+
+const clearCheckoutSlipFile = () => {
+  checkoutSlipFile.value = null
+  if (checkoutSlipInputRef.value) checkoutSlipInputRef.value.value = ''
+}
 
 const confirmItems = computed(() => {
   if (selectMode.value === 'product') {
@@ -268,12 +343,23 @@ const validateAddress = () => {
 }
 
 const goToConfirm = () => {
-  if (validateAddress()) step.value = 'confirm'
+  if (validateAddress()) {
+    checkoutSlipFile.value = null
+    if (checkoutSlipInputRef.value) checkoutSlipInputRef.value.value = ''
+    step.value = 'confirm'
+  }
 }
 
 // ── ส่งคำสั่ง ─────────────────────────────────────────────────────────────────
 
 const submitting = ref(false)
+const canSubmitOrder = computed(() =>
+  !!checkoutSlipFile.value &&
+  Number(checkoutSlipAmount.value || 0) > 0 &&
+  !!selectedCheckoutPaymentMethodId.value &&
+  !submitting.value &&
+  !uploadingCheckoutSlip.value,
+)
 
 const genBookingNo = () => `NS${Date.now().toString(36).toUpperCase()}`
 
@@ -339,6 +425,26 @@ const buildBookingDetailPayloads = (bookingId: string) => {
 }
 
 const handleSubmit = async () => {
+  if (!canPayDeposit.value && !canPayFull.value) {
+    toast.warning('ยังไม่ได้เปิดตัวเลือกการชำระเงิน กรุณาติดต่อแอดมิน')
+    return
+  }
+
+  if (!checkoutSlipFile.value) {
+    toast.warning('กรุณาแนบสลิปก่อนยืนยันคำสั่งซื้อ')
+    return
+  }
+
+  if (!Number.isFinite(Number(checkoutSlipAmount.value)) || Number(checkoutSlipAmount.value) <= 0) {
+    toast.warning('กรุณากรอกยอดชำระในสลิปให้ถูกต้อง')
+    return
+  }
+
+  if (!paymentMethods.value.length || !selectedCheckoutPaymentMethodId.value) {
+    toast.warning('กรุณาเลือกช่องทางชำระเงินก่อนยืนยันคำสั่งซื้อ')
+    return
+  }
+
   submitting.value = true
   try {
     const session = getSession()
@@ -358,7 +464,7 @@ const handleSubmit = async () => {
       body: {
         bookingNo: genBookingNo(),
         status: 'pending',
-        payment: 'deposit',
+        payment: paymentChoice.value,
         memberId: memberId || null,
         packageName: packageName || null,
         baiseeStyle: baiseeStyle || null,
@@ -374,7 +480,7 @@ const handleSubmit = async () => {
         eventDate: form.eventDate ? new Date(form.eventDate).toISOString() : null,
         basePrice: basePrice.value,
         addonPrice: 0,
-        depositAmount: Math.round(totalPrice.value * 0.5),
+        depositAmount: depositRequired.value,
         paidAmount: 0,
       },
     })
@@ -386,16 +492,49 @@ const handleSubmit = async () => {
       const detailsPayload = buildBookingDetailPayloads(bookingId)
       if (detailsPayload.length) {
         const detailResults = await Promise.allSettled(
-          detailsPayload.map(payload => authFetch('/api/v1/booking-details', { method: 'POST', body: payload }))
+          detailsPayload.map((payload: Record<string, unknown>) => authFetch('/api/v1/booking-details', { method: 'POST', body: payload }))
         )
         const failedCount = detailResults.filter(r => r.status === 'rejected').length
         if (failedCount > 0) {
           toast.warning(`บันทึกรายการสินค้าไม่ครบ (${failedCount} รายการ)`) 
         }
       }
+
+      uploadingCheckoutSlip.value = true
+      try {
+        const fd = new FormData()
+        fd.append('target', 'payment_slip')
+        fd.append('file', checkoutSlipFile.value)
+
+        const uploadRes = await authFetch<{ data?: { id?: string, url?: string } }>('/api/v1/uploads', {
+          method: 'POST',
+          body: fd,
+        })
+
+        const storageId = String(uploadRes?.data?.id || '').trim()
+        if (!storageId) throw new Error('missing-upload-id')
+
+        await authFetch('/api/v1/booking-attachments', {
+          method: 'POST',
+          body: {
+            bookingId,
+            storageId,
+            paymentMethodId: selectedCheckoutPaymentMethodId.value,
+            paymentAmount: Number(checkoutSlipAmount.value),
+            attachmentType: 'payment_slip',
+          },
+        })
+      } catch {
+        toast.warning('สร้างออเดอร์สำเร็จแล้ว แต่แนบสลิปไม่สำเร็จ กรุณาอัปโหลดในหน้าคำสั่งซื้ออีกครั้ง')
+      } finally {
+        uploadingCheckoutSlip.value = false
+      }
     }
 
-    toast.success('รับออเดอร์แล้ว ทีมงานจะโทรยืนยันเร็วๆ นี้')
+    const channelLabel = selectedCheckoutPaymentMethod.value
+      ? paymentChannelLabel(selectedCheckoutPaymentMethod.value.channel, selectedCheckoutPaymentMethod.value.bankName)
+      : 'ช่องทางที่เลือก'
+    toast.success(`รับออเดอร์แล้ว (${paymentChoiceLabel.value} • ${channelLabel}) ทีมงานจะตรวจสอบการชำระเงินให้เร็วที่สุด`)
     await navigateTo('/profile')
   } catch (error) {
     const e = error as { data?: { code?: string } }
@@ -728,16 +867,139 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
           </div>
           <!-- ราคา -->
           <div class="px-6 py-4 space-y-2">
-            <div class="flex justify-between text-sm text-neutral-600">
-              <span>ราคาสินค้า</span><span>{{ currency(basePrice) }}</span>
+            <div class="rounded-xl border border-[#ecfdf3] bg-[#f9fefb] p-3 space-y-2">
+              <div class="flex justify-between text-sm text-neutral-600">
+                <span>ยอดก่อนส่วนลด</span><span>{{ currency(basePrice) }}</span>
+              </div>
+              <div v-if="discount > 0" class="flex justify-between text-sm text-[#166534]">
+                <span>ส่วนลด ({{ promoResult?.name }})</span><span>-{{ currency(discount) }}</span>
+              </div>
+              <div class="flex justify-between font-bold text-neutral-900 border-t border-[#bbf7d0] pt-2">
+                <span>ยอดสุทธิ</span><span class="text-[#166534] text-xl">{{ currency(totalPrice) }}</span>
+              </div>
             </div>
-            <div v-if="discount > 0" class="flex justify-between text-sm text-[#166534]">
-              <span>ส่วนลด ({{ promoResult?.name }})</span><span>-{{ currency(discount) }}</span>
+
+            <div class="rounded-xl border border-[#ecfdf3] bg-white p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              <div class="flex items-center justify-between text-neutral-600 sm:block">
+                <span class="text-neutral-500">มัดจำที่ต้องชำระ (50%)</span>
+                <div class="font-semibold text-neutral-900">{{ currency(depositRequired) }}</div>
+              </div>
+              <div class="flex items-center justify-between text-neutral-600 sm:block">
+                <span class="text-neutral-500">ยอดคงเหลือหลังมัดจำ</span>
+                <div class="font-semibold text-neutral-900">{{ currency(remainingAfterDeposit) }}</div>
+              </div>
             </div>
-            <div class="flex justify-between font-bold text-neutral-900 border-t border-[#bbf7d0] pt-2">
-              <span>ยอดรวม</span><span class="text-[#166534] text-lg">{{ currency(totalPrice) }}</span>
+
+            <div class="rounded-xl border border-[#ecfdf3] bg-white p-3 space-y-3">
+              <p class="text-sm font-semibold text-neutral-700">เลือกวิธีชำระเงิน</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label v-if="canPayDeposit" class="cursor-pointer rounded-lg border px-3 py-2 transition-colors" :class="paymentChoice === 'deposit' ? 'border-[#166534] bg-[#f0fdf4]' : 'border-neutral-200 bg-white hover:border-[#bbf7d0]'">
+                  <input v-model="paymentChoice" type="radio" value="deposit" class="sr-only" />
+                  <p class="text-sm font-medium text-neutral-900">ชำระมัดจำ 50%</p>
+                  <p class="text-xs text-neutral-500 mt-0.5">ชำระตอนนี้ {{ currency(depositRequired) }}</p>
+                </label>
+                <label v-if="canPayFull" class="cursor-pointer rounded-lg border px-3 py-2 transition-colors" :class="paymentChoice === 'paid' ? 'border-[#166534] bg-[#f0fdf4]' : 'border-neutral-200 bg-white hover:border-[#bbf7d0]'">
+                  <input v-model="paymentChoice" type="radio" value="paid" class="sr-only" />
+                  <p class="text-sm font-medium text-neutral-900">ชำระเต็มจำนวน</p>
+                  <p class="text-xs text-neutral-500 mt-0.5">ชำระตอนนี้ {{ currency(totalPrice) }}</p>
+                </label>
+              </div>
+              <p v-if="!canPayDeposit && !canPayFull" class="text-xs text-rose-700">ยังไม่ได้เปิดตัวเลือกการชำระเงิน กรุณาติดต่อแอดมิน</p>
+
+              <div class="rounded-lg border border-[#bbf7d0] bg-[#f0fdf4] p-3 text-sm">
+                <div class="flex items-center justify-between text-neutral-700">
+                  <span>ยอดที่ต้องชำระตอนนี้</span>
+                  <span class="font-bold text-[#166534]">{{ currency(payNowAmount) }}</span>
+                </div>
+                <div class="mt-1 flex items-center justify-between text-xs text-neutral-500">
+                  <span>ยอดชำระภายหลัง</span>
+                  <span>{{ currency(payLaterAmount) }}</span>
+                </div>
+              </div>
+
+              <div class="rounded-lg border border-[#bbf7d0] bg-[#f9fefb] p-3 text-sm text-neutral-700">
+                <p class="font-semibold text-neutral-800 mb-1">วิธีการชำระเงิน</p>
+                <div v-if="paymentMethodsPending" class="rounded-lg border border-dashed border-[#bbf7d0] bg-white px-3 py-2 text-neutral-500">กำลังโหลดช่องทางชำระเงิน...</div>
+                <div v-else-if="paymentMethods.length" class="space-y-2">
+                  <label
+                    v-for="method in paymentMethods"
+                    :key="method.id"
+                    class="block cursor-pointer rounded-lg border bg-white px-3 py-2 transition-colors"
+                    :class="selectedCheckoutPaymentMethodId === method.id ? 'border-[#166534] ring-1 ring-[#166534]/20' : 'border-[#d1fae5] hover:border-[#86efac]'"
+                  >
+                    <input v-model="selectedCheckoutPaymentMethodId" type="radio" :value="method.id" class="sr-only" />
+                    <div class="flex items-start justify-between gap-2">
+                      <p class="font-medium text-neutral-900">{{ paymentChannelLabel(method.channel, method.bankName) }}</p>
+                      <span
+                        class="rounded-full border px-2 py-0.5 text-[11px]"
+                        :class="selectedCheckoutPaymentMethodId === method.id ? 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]' : 'border-neutral-200 text-neutral-500'"
+                      >
+                        {{ selectedCheckoutPaymentMethodId === method.id ? 'เลือกแล้ว' : 'เลือก' }}
+                      </span>
+                    </div>
+                    <p v-if="method.accountNumber" class="text-neutral-700">เลขบัญชี: {{ method.accountNumber }}</p>
+                    <p v-if="method.promptPayId" class="text-neutral-700">เลขพร้อมเพย์: {{ method.promptPayId }}</p>
+                    <p class="text-neutral-600">ชื่อบัญชี: {{ method.accountName }}</p>
+                    <div v-if="method.qrCodeUrl" class="mt-2">
+                      <p class="mb-1 text-center text-xs text-neutral-500">QR Code</p>
+                      <div class="flex justify-center">
+                        <img :src="method.qrCodeUrl" alt="Payment QR" class="h-36 w-36 rounded-md border border-[#d1fae5] object-cover" loading="lazy" />
+                      </div>
+                    </div>
+                  </label>
+                  <p class="text-xs text-[#166534]">ช่องทางที่เลือก: {{ selectedCheckoutPaymentMethod ? paymentChannelLabel(selectedCheckoutPaymentMethod.channel, selectedCheckoutPaymentMethod.bankName) : '-' }}</p>
+                </div>
+                <p v-else-if="paymentMethodsError" class="text-rose-700">โหลดช่องทางชำระเงินจากระบบไม่สำเร็จ</p>
+                <p v-else class="text-neutral-500">ยังไม่ได้ตั้งค่าช่องทางชำระเงิน</p>
+                <p class="text-xs text-neutral-500 mt-1">หมายเหตุ: แนบสลิปได้ทันทีด้านล่าง หรือไปอัปโหลดเพิ่มภายหลังในหน้าคำสั่งซื้อ</p>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-sm font-medium text-neutral-700">แนบสลิป <span class="text-red-500">*</span></label>
+                <input
+                  v-model.number="checkoutSlipAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="ยอดที่โอนในสลิป เช่น 1500"
+                  class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-[#166534]"
+                />
+                <p class="text-xs text-neutral-500">กรอกยอดเงินของไฟล์สลิปนี้เพื่อให้แอดมินตรวจสอบได้ง่ายขึ้น</p>
+                <input
+                  ref="checkoutSlipInputRef"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  class="hidden"
+                  @change="onCheckoutSlipFileChange"
+                />
+                <div class="rounded-xl border border-dashed border-[#bbf7d0] bg-[#f8fffb] p-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      class="rounded-lg border border-[#bbf7d0] bg-white px-3 py-1.5 text-sm font-medium text-[#166534] transition-colors hover:bg-[#f0fdf4]"
+                      @click="openCheckoutSlipPicker"
+                    >
+                      เลือกไฟล์สลิป
+                    </button>
+                    <button
+                      v-if="checkoutSlipFile"
+                      type="button"
+                      class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100"
+                      @click="clearCheckoutSlipFile"
+                    >
+                      ล้างไฟล์
+                    </button>
+                  </div>
+                  <p class="mt-2 text-xs text-neutral-500">รองรับไฟล์ PNG, JPG, WEBP</p>
+                  <template v-if="checkoutSlipFile">
+                    <p class="mt-1 text-xs font-medium text-[#166534]">ไฟล์ที่เลือก: {{ checkoutSlipFile.name }}</p>
+                  </template>
+                  <template v-else>
+                    <p class="text-xs text-red-500">ต้องแนบสลิปก่อนกดยืนยันคำสั่งซื้อ</p>
+                  </template>
+                </div>
+              </div>
             </div>
-            <div class="text-xs text-neutral-400">มัดจำ 50% = {{ currency(Math.round(totalPrice * 0.5)) }}</div>
           </div>
         </div>
 
@@ -746,7 +1008,7 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
             ← ย้อนกลับ
           </button>
           <button
-            :disabled="submitting"
+            :disabled="!canSubmitOrder"
             class="flex-1 ns-ui-btn ns-ui-btn-primary disabled:opacity-60 gap-2"
             @click="handleSubmit"
           >
@@ -754,7 +1016,7 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            {{ submitting ? 'กำลังส่งคำสั่ง...' : 'ยืนยันสั่งบายศรี' }}
+            {{ submitting || uploadingCheckoutSlip ? 'กำลังส่งคำสั่ง...' : 'ยืนยันสั่งบายศรี (' + paymentChoiceLabel + ')' }}
           </button>
         </div>
       </div>

@@ -12,7 +12,15 @@ const { authFetch, getSession } = useCustomerAuth()
 const logoutConfirmModalRef = ref<InstanceType<typeof BaseModal> | null>(null)
 let notifPollTimer: number | null = null
 
-type NotificationItem = { id: string; title: string; time: string; to?: string; createdAt: string; isRead: boolean }
+type NotificationItem = {
+  id: string
+  title: string
+  message: string
+  time: string
+  to?: string
+  createdAt: string
+  isRead: boolean
+}
 
 const notifications = ref<NotificationItem[]>([])
 const unreadCountServer = ref(0)
@@ -48,6 +56,11 @@ const unreadCount = computed(() => {
 })
 
 const hasNotification = computed(() => unreadCount.value > 0)
+
+const notificationCardClass = (item: NotificationItem) => {
+  if (item.isRead) return 'border-slate-200 bg-white'
+  return 'border-emerald-200 bg-emerald-50/50'
+}
 
 const asRecord = (value: unknown) => (value && typeof value === 'object' ? value as Record<string, unknown> : {})
 const pickString = (source: Record<string, unknown>, ...keys: string[]) => {
@@ -200,7 +213,8 @@ const loadOrderNotifications = async () => {
       const createdAt = pickString(r, 'created_at', 'createdAt') || new Date().toISOString()
       return {
         id: id || `n-${idx}`,
-        title: normalized.message ? `${normalized.title} ${normalized.message}`.trim() : normalized.title,
+        title: normalized.title,
+        message: normalized.message,
         time: formatRelative(createdAt),
         to: bookingId ? `/orders/${bookingId}` : '/orders',
         createdAt,
@@ -342,32 +356,51 @@ const logout = () => {
 
               <div
                 v-if="isDesktopNotifOpen"
-                class="absolute right-0 mt-2 w-80 rounded-2xl border border-[#bbf7d0] bg-white shadow-[0_14px_30px_-18px_rgba(22,101,52,0.55)] p-3 z-50"
+                class="absolute right-0 mt-2 z-[80] w-[360px] max-w-[92vw] rounded-2xl border border-emerald-100 bg-white p-3 shadow-lg shadow-emerald-100/40"
               >
-                <div class="flex items-center justify-between pb-2 border-b border-[#ecfdf3]">
-                  <p class="text-sm font-semibold text-neutral-900">การแจ้งเตือน</p>
-                  <button class="text-xs text-[#166534] hover:underline" @click="markAllReadAndClose">อ่านทั้งหมด</button>
+                <div class="flex items-center justify-between border-b border-emerald-100 pb-2">
+                  <p class="text-sm font-semibold text-slate-900">การแจ้งเตือน</p>
+                  <button class="text-xs font-medium text-emerald-700 hover:underline" @click="markAllReadAndClose">อ่านทั้งหมด</button>
                 </div>
-                <div v-if="notifications.length" class="pt-2 space-y-2 max-h-72 overflow-y-auto">
+                <div v-if="notifications.length" class="mt-2 max-h-80 space-y-2 overflow-y-auto pr-1">
                   <template v-for="item in notifications" :key="item.id">
-                    <div class="rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2">
-                      <NuxtLink
-                        v-if="item.to"
-                        :to="item.to"
-                        class="block hover:opacity-90 transition-opacity"
-                        @click="markReadAndClose(item.id)"
-                      >
-                        <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                      </NuxtLink>
-                      <p v-else class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                      <div class="mt-1 flex items-center justify-between gap-2">
-                        <p class="text-[11px] text-neutral-500">{{ item.time }}</p>
+                    <div class="rounded-xl border px-3 py-2" :class="notificationCardClass(item)">
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <p class="truncate text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                          <p class="mt-0.5 line-clamp-2 text-xs text-slate-600">{{ item.message }}</p>
+                          <p class="mt-1 text-[11px] text-slate-400">{{ item.time }}</p>
+                        </div>
                         <button
                           v-if="!item.isRead"
-                          class="text-[11px] font-medium text-[#166534] hover:underline"
+                          class="shrink-0 rounded-lg border border-emerald-200 bg-white px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
                           @click="markRead(item.id)"
                         >
                           อ่านแล้ว
+                        </button>
+                        <span
+                          v-else
+                          class="shrink-0 rounded-lg border border-emerald-200 bg-white px-2 py-1 text-[11px] font-medium text-emerald-700"
+                        >
+                          อ่านแล้ว
+                        </span>
+                      </div>
+                      <div class="mt-2">
+                        <NuxtLink
+                          v-if="item.to"
+                          :to="item.to"
+                          class="inline-flex text-xs font-medium text-emerald-700 hover:underline"
+                          @click="markReadAndClose(item.id)"
+                        >
+                          ดูออเดอร์
+                        </NuxtLink>
+                        <button
+                          v-else
+                          type="button"
+                          class="inline-flex text-xs font-medium text-emerald-700 hover:underline"
+                          @click="markRead(item.id)"
+                        >
+                          อ่านแจ้งเตือน
                         </button>
                       </div>
                     </div>
@@ -472,7 +505,7 @@ const logout = () => {
 
                 <div
                   v-if="isMobileNotifOpen"
-                  class="absolute left-0 mt-2 w-[290px] rounded-2xl border border-[#bbf7d0] bg-white shadow-[0_14px_30px_-18px_rgba(22,101,52,0.55)] p-3 z-50"
+                  class="absolute left-0 mt-2 w-[min(92vw,26rem)] rounded-2xl border border-[#bbf7d0] bg-[#f8fffb] shadow-[0_18px_40px_-24px_rgba(22,101,52,0.55)] p-3 z-50"
                 >
                   <div class="flex items-center justify-between pb-2 border-b border-[#ecfdf3]">
                     <p class="text-sm font-semibold text-neutral-900">การแจ้งเตือน</p>
@@ -480,24 +513,36 @@ const logout = () => {
                   </div>
                   <div v-if="notifications.length" class="pt-2 space-y-2 max-h-60 overflow-y-auto">
                     <template v-for="item in notifications" :key="`m-${item.id}`">
-                      <div class="rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2">
-                        <NuxtLink
-                          v-if="item.to"
-                          :to="item.to"
-                          class="block hover:opacity-90 transition-opacity"
-                          @click="markReadAndClose(item.id)"
-                        >
-                          <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                        </NuxtLink>
-                        <p v-else class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                        <div class="mt-1 flex items-center justify-between gap-2">
-                          <p class="text-[11px] text-neutral-500">{{ item.time }}</p>
+                      <div class="rounded-xl border p-3" :class="notificationCardClass(item)">
+                        <div class="flex items-start justify-between gap-2">
+                          <p class="text-base font-semibold text-[#111827] leading-tight">{{ item.title }}</p>
                           <button
                             v-if="!item.isRead"
-                            class="text-[11px] font-medium text-[#166534] hover:underline"
+                            class="inline-flex items-center rounded-xl border border-[#86efac] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#047857]"
                             @click="markRead(item.id)"
                           >
                             อ่านแล้ว
+                          </button>
+                          <span v-else class="inline-flex items-center rounded-xl border border-[#86efac] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#047857]">อ่านแล้ว</span>
+                        </div>
+                        <p class="mt-1 text-sm text-[#475569] leading-snug">{{ item.message }}</p>
+                        <p class="mt-2 text-[11px] text-[#94a3b8]">{{ item.time }}</p>
+                        <div class="mt-2">
+                          <NuxtLink
+                            v-if="item.to"
+                            :to="item.to"
+                            class="text-sm font-semibold text-[#047857] hover:underline"
+                            @click="markReadAndClose(item.id)"
+                          >
+                            ดูออเดอร์
+                          </NuxtLink>
+                          <button
+                            v-else
+                            type="button"
+                            class="text-sm font-semibold text-[#047857] hover:underline"
+                            @click="markRead(item.id)"
+                          >
+                            อ่านแจ้งเตือน
                           </button>
                         </div>
                       </div>
