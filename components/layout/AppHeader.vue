@@ -76,6 +76,46 @@ const pickNum = (source: Record<string, unknown>, ...keys: string[]) => {
   return 0
 }
 
+const statusLabelThaiMap: Record<string, string> = {
+  draft: 'ฉบับร่าง',
+  confirmed: 'ยืนยันแล้ว',
+  in_production: 'กำลังผลิต',
+  ready: 'พร้อมส่งมอบ',
+  delivered: 'ส่งมอบแล้ว',
+  pending: 'รอดำเนินการ',
+  processing: 'กำลังดำเนินการ',
+  completed: 'เสร็จสมบูรณ์',
+  canceled: 'ยกเลิก',
+}
+
+const toThaiStatusLabel = (value: string) => {
+  const key = value.trim().toLowerCase()
+  return statusLabelThaiMap[key] || value
+}
+
+const normalizeLegacyCustomerNotification = (eventKey: string, title: string, message: string) => {
+  let nextTitle = title
+  let nextMessage = message
+
+  if (eventKey === 'booking_created' || /^Booking Created$/i.test(title)) {
+    nextTitle = 'คำสั่งจองสำเร็จ'
+    const createdMatch = message.match(/^Booking\s+(.+?)\s+was created$/i)
+    if (createdMatch) nextMessage = `เราได้รับคำสั่งจองของคุณแล้ว เลขที่ ${createdMatch[1]}`
+  }
+
+  if (eventKey === 'booking_status_changed' || /^Booking Status Updated$/i.test(title)) {
+    nextTitle = 'อัปเดตสถานะคำสั่งจองของคุณ'
+    const statusMatch = message.match(/^Booking\s+(.+?)\s+status changed to\s+(.+)$/i)
+    if (statusMatch) nextMessage = `คำสั่งจองเลขที่ ${statusMatch[1]} ของคุณมีสถานะใหม่เป็น ${toThaiStatusLabel(statusMatch[2])}`
+  }
+
+  if (eventKey === 'booking_message' || /^New Booking Message$/i.test(title)) {
+    nextTitle = 'มีข้อความใหม่จากทีมงาน'
+  }
+
+  return { title: nextTitle, message: nextMessage }
+}
+
 const toggleDesktopNotif = () => {
   isDesktopNotifOpen.value = !isDesktopNotifOpen.value
   if (isDesktopNotifOpen.value) {
@@ -108,8 +148,8 @@ const toggleMobileProfile = () => {
   }
 }
 
-const clearNotifications = () => {
-  markAllRead()
+const markAllReadAndClose = async () => {
+  await markAllRead()
   isDesktopNotifOpen.value = false
   isMobileNotifOpen.value = false
 }
@@ -150,13 +190,17 @@ const loadOrderNotifications = async () => {
     notifications.value = rows.slice(0, 20).map((raw, idx) => {
       const r = asRecord(raw)
       const id = pickString(r, 'id')
-      const title = pickString(r, 'title') || 'การแจ้งเตือนใหม่'
-      const message = pickString(r, 'message')
+      const eventKey = pickString(r, 'event_key', 'eventKey')
+      const normalized = normalizeLegacyCustomerNotification(
+        eventKey,
+        pickString(r, 'title') || 'การแจ้งเตือนใหม่',
+        pickString(r, 'message'),
+      )
       const bookingId = pickString(r, 'booking_id', 'bookingId')
       const createdAt = pickString(r, 'created_at', 'createdAt') || new Date().toISOString()
       return {
         id: id || `n-${idx}`,
-        title: message ? `${title} ${message}`.trim() : title,
+        title: normalized.message ? `${normalized.title} ${normalized.message}`.trim() : normalized.title,
         time: formatRelative(createdAt),
         to: bookingId ? `/orders/${bookingId}` : '/orders',
         createdAt,
@@ -178,6 +222,11 @@ const markRead = async (id: string) => {
   } catch {
     // ignore
   }
+}
+
+const markReadAndClose = async (id: string) => {
+  await markRead(id)
+  closeNotificationMenus()
 }
 
 const markAllRead = async () => {
@@ -297,22 +346,30 @@ const logout = () => {
               >
                 <div class="flex items-center justify-between pb-2 border-b border-[#ecfdf3]">
                   <p class="text-sm font-semibold text-neutral-900">การแจ้งเตือน</p>
-                  <button class="text-xs text-[#166534] hover:underline" @click="clearNotifications">ล้างทั้งหมด</button>
+                  <button class="text-xs text-[#166534] hover:underline" @click="markAllReadAndClose">อ่านทั้งหมด</button>
                 </div>
                 <div v-if="notifications.length" class="pt-2 space-y-2 max-h-72 overflow-y-auto">
                   <template v-for="item in notifications" :key="item.id">
-                    <NuxtLink
-                      v-if="item.to"
-                      :to="item.to"
-                      class="block rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2 hover:bg-white transition-colors"
-                      @click="markRead(item.id); closeNotificationMenus()"
-                    >
-                      <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                      <p class="text-[11px] text-neutral-500 mt-1">{{ item.time }}</p>
-                    </NuxtLink>
-                    <div v-else class="rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2">
-                      <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                      <p class="text-[11px] text-neutral-500 mt-1">{{ item.time }}</p>
+                    <div class="rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2">
+                      <NuxtLink
+                        v-if="item.to"
+                        :to="item.to"
+                        class="block hover:opacity-90 transition-opacity"
+                        @click="markReadAndClose(item.id)"
+                      >
+                        <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
+                      </NuxtLink>
+                      <p v-else class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
+                      <div class="mt-1 flex items-center justify-between gap-2">
+                        <p class="text-[11px] text-neutral-500">{{ item.time }}</p>
+                        <button
+                          v-if="!item.isRead"
+                          class="text-[11px] font-medium text-[#166534] hover:underline"
+                          @click="markRead(item.id)"
+                        >
+                          อ่านแล้ว
+                        </button>
+                      </div>
                     </div>
                   </template>
                 </div>
@@ -419,22 +476,30 @@ const logout = () => {
                 >
                   <div class="flex items-center justify-between pb-2 border-b border-[#ecfdf3]">
                     <p class="text-sm font-semibold text-neutral-900">การแจ้งเตือน</p>
-                    <button class="text-xs text-[#166534] hover:underline" @click="clearNotifications">ล้างทั้งหมด</button>
+                    <button class="text-xs text-[#166534] hover:underline" @click="markAllReadAndClose">อ่านทั้งหมด</button>
                   </div>
                   <div v-if="notifications.length" class="pt-2 space-y-2 max-h-60 overflow-y-auto">
                     <template v-for="item in notifications" :key="`m-${item.id}`">
-                      <NuxtLink
-                        v-if="item.to"
-                        :to="item.to"
-                        class="block rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2 hover:bg-white transition-colors"
-                        @click="markRead(item.id); closeNotificationMenus()"
-                      >
-                        <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                        <p class="text-[11px] text-neutral-500 mt-1">{{ item.time }}</p>
-                      </NuxtLink>
-                      <div v-else class="rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2">
-                        <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
-                        <p class="text-[11px] text-neutral-500 mt-1">{{ item.time }}</p>
+                      <div class="rounded-xl border border-[#ecfdf3] bg-[#f0fdf4] px-3 py-2">
+                        <NuxtLink
+                          v-if="item.to"
+                          :to="item.to"
+                          class="block hover:opacity-90 transition-opacity"
+                          @click="markReadAndClose(item.id)"
+                        >
+                          <p class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
+                        </NuxtLink>
+                        <p v-else class="text-sm text-neutral-800 leading-snug">{{ item.title }}</p>
+                        <div class="mt-1 flex items-center justify-between gap-2">
+                          <p class="text-[11px] text-neutral-500">{{ item.time }}</p>
+                          <button
+                            v-if="!item.isRead"
+                            class="text-[11px] font-medium text-[#166534] hover:underline"
+                            @click="markRead(item.id)"
+                          >
+                            อ่านแล้ว
+                          </button>
+                        </div>
                       </div>
                     </template>
                   </div>

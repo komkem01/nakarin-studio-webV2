@@ -4,6 +4,7 @@ const { authFetch } = useAdminSession()
 
 type AdminNotificationItem = {
   id: string
+  eventKey: string
   title: string
   message: string
   bookingId?: string | null
@@ -67,6 +68,46 @@ const pickNum = (source: Record<string, unknown>, ...keys: string[]) => {
   return 0
 }
 
+const statusLabelThaiMap: Record<string, string> = {
+  draft: 'ฉบับร่าง',
+  confirmed: 'ยืนยันแล้ว',
+  in_production: 'กำลังผลิต',
+  ready: 'พร้อมส่งมอบ',
+  delivered: 'ส่งมอบแล้ว',
+  pending: 'รอดำเนินการ',
+  processing: 'กำลังดำเนินการ',
+  completed: 'เสร็จสมบูรณ์',
+  canceled: 'ยกเลิก',
+}
+
+const toThaiStatusLabel = (value: string) => {
+  const key = value.trim().toLowerCase()
+  return statusLabelThaiMap[key] || value
+}
+
+const normalizeLegacyAdminNotification = (eventKey: string, title: string, message: string) => {
+  let nextTitle = title
+  let nextMessage = message
+
+  if (eventKey === 'booking_created' || /^Booking Created$/i.test(title)) {
+    nextTitle = 'มีรายการจองใหม่'
+    const createdMatch = message.match(/^Booking\s+(.+?)\s+was created$/i)
+    if (createdMatch) nextMessage = `มีการสร้างรายการจองเลขที่ ${createdMatch[1]} แล้ว`
+  }
+
+  if (eventKey === 'booking_status_changed' || /^Booking Status Updated$/i.test(title)) {
+    nextTitle = 'อัปเดตสถานะการจอง'
+    const statusMatch = message.match(/^Booking\s+(.+?)\s+status changed to\s+(.+)$/i)
+    if (statusMatch) nextMessage = `รายการจองเลขที่ ${statusMatch[1]} เปลี่ยนสถานะเป็น ${toThaiStatusLabel(statusMatch[2])}`
+  }
+
+  if (eventKey === 'booking_message' || /^New Booking Message$/i.test(title)) {
+    nextTitle = 'มีข้อความใหม่ในรายการจอง'
+  }
+
+  return { title: nextTitle, message: nextMessage }
+}
+
 const formatRelative = (iso: string) => {
   const t = new Date(iso).getTime()
   if (!Number.isFinite(t)) return 'ล่าสุด'
@@ -95,10 +136,17 @@ const fetchNotifications = async () => {
     unreadCountServer.value = Math.max(0, pickNum(meta, 'unread', 'Unread'))
     notifications.value = rows.map((raw) => {
       const row = asRecord(raw)
+      const eventKey = pickString(row, 'eventKey', 'event_key')
+      const normalized = normalizeLegacyAdminNotification(
+        eventKey,
+        pickString(row, 'title') || 'การแจ้งเตือนใหม่',
+        pickString(row, 'message'),
+      )
       return {
         id: pickString(row, 'id'),
-        title: pickString(row, 'title') || 'การแจ้งเตือนใหม่',
-        message: pickString(row, 'message'),
+        eventKey,
+        title: normalized.title,
+        message: normalized.message,
         bookingId: pickString(row, 'bookingId', 'booking_id') || null,
         isRead: pickBool(row, 'isRead', 'is_read'),
         createdAt: pickString(row, 'createdAt', 'created_at'),
