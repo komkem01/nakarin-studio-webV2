@@ -663,7 +663,7 @@ const zipcodeOptions = computed(() => zipcodes.value.map(z => ({ label: z.code, 
                 ? 'border-[#166534] bg-[#f0fdf4] shadow-[0_2px_12px_-4px_rgba(22,101,52,0.2)]'
                 : 'border-[#bbf7d0] bg-white hover:border-[#166534]/50'"
             >
-              <input :id="`prod-${product.id}`" type="checkbox" :checked="selectedProductIds.includes(product.id)" class="accent-[#166534]" @change="toggleProduct(product.id)" />
+              <input :id="`prod-${product.id}`" type="checkbox" :checked="selectedProductIds.includes(product.id)" class="checkbox" @change="toggleProduct(product.id)" />
               <div class="flex-1 min-w-0">
                 <div class="font-medium text-neutral-900">{{ product.name }}</div>
                 <div class="text-xs text-neutral-400 mt-0.5">{{ product.category_name }}</div>

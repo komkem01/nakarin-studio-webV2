@@ -49,6 +49,9 @@ export default defineNuxtConfig({
       meta: [
         { name: 'description', content: 'รับจองและสั่งทำบายศรี Nakarin Studio' },
       ],
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      ],
     },
   },
 })

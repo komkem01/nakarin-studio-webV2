@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
+const { logout: logoutAdmin } = useAdminSession()
 
 const modalRef = ref<InstanceType<typeof BaseModal> | null>(null)
 
@@ -37,16 +38,8 @@ const openLogoutModal = () => {
 }
 
 const logout = async () => {
-  if (import.meta.client) {
-    localStorage.removeItem('ns_admin_auth')
-    sessionStorage.removeItem('ns_admin_auth')
-    document.cookie = 'access_token=; Path=/; Max-Age=0; SameSite=Lax'
-    document.cookie = 'refresh_token=; Path=/; Max-Age=0; SameSite=Lax'
-    document.cookie = 'accesc_token=; Path=/; Max-Age=0; SameSite=Lax'
-  }
-
   modalRef.value?.close()
-  await navigateTo('/admin/auth/login')
+  await logoutAdmin()
 }
 </script>
 

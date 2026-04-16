@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'admin' })
 useSeoMeta({ title: 'ตั้งค่า - Nakarin Studio Admin' })
 
-const { authFetch, clearSession } = useAdminSession()
+const { authFetch, clearSession, logout } = useAdminSession()
 const toast = useAppToast()
 
 // ─── System overview ──────────────────────────────────────────────────────────
@@ -141,12 +141,7 @@ const loggingOut = ref(false)
 
 const handleLogout = async () => {
   loggingOut.value = true
-  try {
-    await authFetch('/api/v1/auth/logout', { method: 'POST' })
-  } catch {
-    // ignore logout errors
-  }
-  await clearSession()
+  await logout()
 }
 
 // ─── Session info ─────────────────────────────────────────────────────────────

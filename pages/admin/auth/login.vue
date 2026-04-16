@@ -326,14 +326,18 @@ onMounted(() => {
           </div>
 
           <!-- Remember me -->
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              v-model="form.remember"
-              type="checkbox"
-              class="w-4 h-4 border border-neutral-400 accent-[#166534]"
-            />
-            <span class="text-sm text-neutral-600">จดจำฉัน</span>
-          </label>
+          <fieldset class="fieldset w-full rounded-xl border border-[#d7e8de] bg-[#f7fbf8] px-3.5 py-2.5">
+            <legend class="fieldset-legend px-1 text-[11px] font-semibold tracking-wide text-[#4f6b5b]">ตัวเลือกการเข้าสู่ระบบ</legend>
+            <label class="label cursor-pointer justify-start gap-2 py-0 text-sm text-neutral-700">
+              <input
+                id="remember"
+                v-model="form.remember"
+                type="checkbox"
+                class="checkbox checkbox-sm checkbox-success"
+              />
+              <span class="text-sm font-medium text-neutral-700">จดจำฉัน</span>
+            </label>
+          </fieldset>
 
           <button
             type="submit"

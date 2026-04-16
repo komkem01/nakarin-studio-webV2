@@ -137,9 +137,24 @@ export const useAdminSession = () => {
     }
   }
 
+  const logout = async () => {
+    try {
+      const accessToken = getCookieValue('access_token')
+      await $fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        baseURL: config.public.apiBase,
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      })
+    } catch {
+      // best-effort only; always clear local session afterwards
+    }
+    await clearSession()
+  }
+
   return {
     authFetch,
     refreshAccessToken,
     clearSession,
+    logout,
   }
 }

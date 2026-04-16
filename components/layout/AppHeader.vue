@@ -8,7 +8,7 @@ const desktopNotifRef = ref<HTMLElement | null>(null)
 const mobileNotifRef = ref<HTMLElement | null>(null)
 const desktopProfileRef = ref<HTMLElement | null>(null)
 const mobileProfileRef = ref<HTMLElement | null>(null)
-const { authFetch, getSession } = useCustomerAuth()
+const { authFetch, getSession, clearSession } = useCustomerAuth()
 const logoutConfirmModalRef = ref<InstanceType<typeof BaseModal> | null>(null)
 let notifPollTimer: number | null = null
 
@@ -34,15 +34,17 @@ const navLinks = [
 
 type StoredSession = { member?: { id?: string; firstName?: string; lastName?: string; role?: string } }
 
-const session = computed<StoredSession>(() => {
-  if (!import.meta.client) return {}
+const session = ref<StoredSession>({})
+
+const syncSession = () => {
+  if (!import.meta.client) return
   try {
     const current = getSession()
-    return current ? current as StoredSession : {}
+    session.value = current ? current as StoredSession : {}
   } catch {
-    return {}
+    session.value = {}
   }
-})
+}
 
 const isLoggedIn = computed(() => !!session.value?.member?.firstName)
 const memberName = computed(() => {
@@ -276,32 +278,35 @@ const requestLogout = () => {
 }
 
 onMounted(() => {
+  syncSession()
   document.addEventListener('click', onClickOutside)
+  window.addEventListener('storage', syncSession)
+  window.addEventListener('focus', syncSession)
   loadOrderNotifications()
   notifPollTimer = window.setInterval(loadOrderNotifications, 60000)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutside)
+  window.removeEventListener('storage', syncSession)
+  window.removeEventListener('focus', syncSession)
   if (notifPollTimer !== null) {
     window.clearInterval(notifPollTimer)
     notifPollTimer = null
   }
 })
 
-const logout = () => {
-  if (!import.meta.client) return
+const logout = async () => {
   logoutConfirmModalRef.value?.close()
+  isMenuOpen.value = false
   isDesktopNotifOpen.value = false
   isMobileNotifOpen.value = false
   isDesktopProfileOpen.value = false
   isMobileProfileOpen.value = false
-  localStorage.removeItem('ns_auth')
-  localStorage.removeItem('ns_customer_remember_me')
-  sessionStorage.removeItem('ns_auth')
-  document.cookie = 'customer_access_token=; Path=/; Max-Age=0; SameSite=Lax'
-  document.cookie = 'customer_refresh_token=; Path=/; Max-Age=0; SameSite=Lax'
-  navigateTo('/')
+  session.value = {}
+  notifications.value = []
+  unreadCountServer.value = 0
+  await clearSession('/')
 }
 </script>
 

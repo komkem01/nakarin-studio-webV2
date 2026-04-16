@@ -135,14 +135,14 @@ export const useCustomerAuth = () => {
     setCookie(REFRESH_COOKIE, tokens.refreshToken, tokens.refreshTokenExpiresIn || defaultRefreshAge, remember)
   }
 
-  const clearSession = async () => {
+  const clearSession = async (redirectTo = '/auth/login') => {
     if (import.meta.client) {
       localStorage.removeItem(SESSION_KEY)
       localStorage.removeItem(REMEMBER_PREF_KEY)
       sessionStorage.removeItem(SESSION_KEY)
       clearCookies()
     }
-    await navigateTo('/auth/login')
+    await navigateTo(redirectTo)
   }
 
   // ── API ───────────────────────────────────────────────────────────────────

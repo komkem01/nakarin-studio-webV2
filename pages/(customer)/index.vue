@@ -33,10 +33,8 @@ const orderFlow = [
 ]
 
 const heroStats = computed(() => [
-  { value: `${products.value.length}+`, label: 'รูปแบบบายศรี' },
-  { value: `${packages.value.length}+`, label: 'แพคเกจพิเศษ' },
-  { value: '2000+', label: 'ลูกค้าที่ไว้ใจ' },
-  { value: '4.9/5', label: 'คะแนนรีวิว' },
+  { value: `${products.value.length}`, label: 'รูปแบบบายศรี' },
+  { value: `${packages.value.length}`, label: 'แพคเกจพิเศษ' },
 ])
 
 const heroPreviewPackages = computed(() => packages.value.slice(0, 3))
@@ -215,7 +213,7 @@ onMounted(async () => {
             </div>
 
             <div class="ns-ui-card-soft p-5 space-y-3">
-              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">แพคเกจยอดนิยม</p>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">แพคเกจแนะนำ</p>
               <div v-if="loadingPackages" class="space-y-2">
                 <div v-for="i in 3" :key="i" class="h-14 rounded-xl bg-[#bbf7d0]/40 animate-pulse" />
               </div>
@@ -340,10 +338,7 @@ onMounted(async () => {
         </div>
         <div v-else-if="filteredPackages.length === 0" class="py-16 text-center text-neutral-400">ไม่พบแพคเกจในหมวดที่เลือก</div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="(pkg, i) in filteredPackages" :key="pkg.id" class="group relative rounded-2xl bg-white border p-6 hover:shadow-[0_16px_34px_-20px_rgba(22,101,52,0.45)] hover:-translate-y-1 transition-all duration-300 flex flex-col" :class="i === 0 ? 'border-[#166534] ring-2 ring-[#166534]/20' : 'border-[#bbf7d0]'">
-            <div v-if="i === 0" class="absolute -top-3 left-5">
-              <span class="rounded-full bg-[#166534] px-3 py-0.5 text-xs font-bold text-white shadow-[0_4px_10px_-4px_rgba(22,101,52,0.6)]">ยอดนิยม</span>
-            </div>
+          <div v-for="pkg in filteredPackages" :key="pkg.id" class="group relative rounded-2xl bg-white border border-[#bbf7d0] p-6 hover:shadow-[0_16px_34px_-20px_rgba(22,101,52,0.45)] hover:-translate-y-1 transition-all duration-300 flex flex-col">
             <div class="flex-1 space-y-4">
               <div>
                 <h3 class="text-lg font-bold text-neutral-900">{{ pkg.name }}</h3>
@@ -364,7 +359,7 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
-            <NuxtLink to="/booking" class="mt-5 block w-full text-center ns-ui-btn" :class="i === 0 ? 'ns-ui-btn-primary' : 'ns-ui-btn-secondary'">
+            <NuxtLink to="/booking" class="mt-5 block w-full text-center ns-ui-btn ns-ui-btn-secondary">
               เลือกแพคเกจนี้
             </NuxtLink>
           </div>
